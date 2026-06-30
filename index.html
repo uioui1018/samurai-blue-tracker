@@ -59,7 +59,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;ba
       <div class="hdr-sub">代表選手のクラブ動向</div>
     </div>
   </div>
-  <div class="refresh-btn" id="refreshBtn" onclick="refreshCurrent()">↻ 更新</div>
+  <div class="refresh-btn" id="refreshBtn">↻ 更新</div>
 </div>
 
 <div class="tab-row" id="tabRow"></div>
@@ -118,11 +118,29 @@ let selectedPlayer={};
 let openCard=null;
 const listCache={};
 const summaryCache={};
+let lastRenderedItems=null;
+let lastRenderedKind=null;
+let lastRenderedPlayer=null;
+
+function el(tag, props, children){
+  const e=document.createElement(tag);
+  if(props) for(const k in props){
+    if(k==='class') e.className=props[k];
+    else if(k==='text') e.textContent=props[k];
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2), props[k]);
+    else e.setAttribute(k, props[k]);
+  }
+  if(children) children.forEach(c=>{ if(c) e.appendChild(c); });
+  return e;
+}
 
 function renderTabs(){
-  document.getElementById("tabRow").innerHTML=TABS.map(t=>
-    `<div class="tab${currentTab===t.id?" active":""}" onclick="switchTab('${t.id}')">${t.label}</div>`
-  ).join("");
+  const row=document.getElementById("tabRow");
+  row.innerHTML="";
+  TABS.forEach(t=>{
+    const d=el('div',{class:'tab'+(currentTab===t.id?' active':''), text:t.label, onclick:()=>switchTab(t.id)});
+    row.appendChild(d);
+  });
 }
 
 function switchTab(tab){
@@ -132,6 +150,7 @@ function switchTab(tab){
   renderView();
 }
 
+document.getElementById('refreshBtn').addEventListener('click', refreshCurrent);
 function refreshCurrent(){
   openCard=null;
   if(currentTab==="topics"){
@@ -153,35 +172,30 @@ async function fetchNewsList(query,club){
 }
 
 async function fetchSummary(titleEn, descEn){
-  const key = titleEn;
-  if(summaryCache[key]) return summaryCache[key];
+  if(summaryCache[titleEn]) return summaryCache[titleEn];
   const url=`${API}?summarize=1&title=${encodeURIComponent(titleEn)}&desc=${encodeURIComponent(descEn||'')}`;
   const res=await fetch(url);
   if(!res.ok) throw new Error("summary error");
   const data=await res.json();
-  summaryCache[key]=data.summary_ja||'';
-  return summaryCache[key];
+  summaryCache[titleEn]=data.summary_ja||'';
+  return summaryCache[titleEn];
 }
-
-let lastRenderedItems=null;
-let lastRenderedKind=null;
-let lastRenderedPlayer=null;
 
 function renderCurrentList(){
   if(lastRenderedKind==='topics') renderTopicItems(lastRenderedItems);
   else if(lastRenderedKind==='player') renderPlayerItems(document.getElementById('playerNews'), lastRenderedItems, lastRenderedPlayer);
 }
 
-async function toggleCard(idx, titleEn, descEn){
+async function toggleCard(idx, item){
   const wasOpen = openCard===idx;
   openCard = wasOpen ? null : idx;
   renderCurrentList();
-  if(!wasOpen && !summaryCache[titleEn]){
+  if(!wasOpen && !summaryCache[item.title_en]){
     try{
-      await fetchSummary(titleEn, descEn);
+      await fetchSummary(item.title_en, item.desc_en);
       renderCurrentList();
     }catch(e){
-      summaryCache[titleEn]='要約の取得に失敗しました。';
+      summaryCache[item.title_en]='要約の取得に失敗しました。';
       renderCurrentList();
     }
   }
@@ -192,9 +206,15 @@ async function renderView(){
   const btn=document.getElementById("refreshBtn");
 
   if(currentTab==="topics"){
-    v.innerHTML=`<div class="badge-rt"><span class="pulse"></span>Google Newsリアルタイム</div>
-    <div class="sec-lbl">主要トピック</div>
-    <div id="newsList"><div class="loading">🔍 世界のニュースを検索中…</div></div>`;
+    v.innerHTML='';
+    const badge=el('div',{class:'badge-rt'});
+    badge.innerHTML='<span class="pulse"></span>Google Newsリアルタイム';
+    v.appendChild(badge);
+    v.appendChild(el('div',{class:'sec-lbl', text:'主要トピック'}));
+    const listDiv=el('div',{id:'newsList'});
+    listDiv.innerHTML='<div class="loading">🔍 世界のニュースを検索中…</div>';
+    v.appendChild(listDiv);
+
     if(listCache["__topics__"]){lastRenderedItems=listCache["__topics__"];lastRenderedKind='topics';renderTopicItems(listCache["__topics__"]);return;}
     btn.classList.add("loading");
     try{
@@ -204,59 +224,70 @@ async function renderView(){
       lastRenderedItems=items;lastRenderedKind='topics';
       renderTopicItems(items);
     }catch(e){
-      document.getElementById("newsList").innerHTML=`<div class="err">取得に失敗しました。更新を押してください。</div>`;
+      document.getElementById("newsList").innerHTML='<div class="err">取得に失敗しました。更新を押してください。</div>';
     }finally{btn.classList.remove("loading");}
   } else {
     const players=PLAYERS[currentTab]||[];
     const sel=selectedPlayer[currentTab];
-    v.innerHTML=`<div class="p-grid">${players.map((p,i)=>`
-      <div class="p-card${sel===i?" active":""}" onclick="selectPlayer('${currentTab}',${i})">
-        <div class="p-name">${p.display}</div>
-        <div class="p-club">${p.club}</div>
-        <div class="p-row"><span class="ldot" style="background:${p.lc}"></span><span class="p-league">${p.league}</span></div>
-        <div class="p-pos">${p.pos}</div>
-      </div>`).join("")}</div>
-    <div id="playerNews">${sel!==undefined?'<div class="loading">検索中…</div>':'<div class="empty">選手をタップするとニュースを表示します</div>'}</div>
-    ${currentTab==="youth"?'<div class="youth-note">2030年W杯で23歳以下となる選手を中心に掲載しています。</div>':""}`;
+    v.innerHTML='';
+    const grid=el('div',{class:'p-grid'});
+    players.forEach((p,i)=>{
+      const card=el('div',{class:'p-card'+(sel===i?' active':''), onclick:()=>selectPlayer(currentTab,i)});
+      card.innerHTML=`<div class="p-name">${p.display}</div><div class="p-club">${p.club}</div><div class="p-row"><span class="ldot" style="background:${p.lc}"></span><span class="p-league">${p.league}</span></div><div class="p-pos">${p.pos}</div>`;
+      grid.appendChild(card);
+    });
+    v.appendChild(grid);
+    const newsDiv=el('div',{id:'playerNews'});
+    newsDiv.innerHTML = sel!==undefined ? '<div class="loading">検索中…</div>' : '<div class="empty">選手をタップするとニュースを表示します</div>';
+    v.appendChild(newsDiv);
+    if(currentTab==="youth"){
+      const note=el('div',{class:'youth-note', text:'2030年W杯で23歳以下となる選手を中心に掲載しています。'});
+      v.appendChild(note);
+    }
     if(sel!==undefined) loadPlayerNews(currentTab,sel);
   }
 }
 
-function newsCardHTML(it, idx, matchedTag){
+function buildNewsCard(it, idx, matchedTagText){
   const isOpen = openCard===idx;
-  const titleEnEsc = it.title_en.replace(/'/g,"\\'");
-  const descEnEsc = (it.desc_en||'').replace(/'/g,"\\'");
-  let bodyHtml = '';
+  const card=el('div',{class:'news-card', onclick:()=>toggleCard(idx, it)});
+  const meta=el('div',{class:'news-meta'});
+  if(matchedTagText){
+    meta.appendChild(el('span',{class:'news-player-tag', text:matchedTagText}));
+  }
+  meta.appendChild(el('span',{class:'news-source', text:it.source}));
+  meta.appendChild(el('span',{class:'news-time', text:it.time}));
+  meta.appendChild(el('span',{class:'chevron'+(isOpen?' open':''), text:'▾'}));
+  card.appendChild(meta);
+  card.appendChild(el('div',{class:'news-title', text:it.title_ja}));
   if(isOpen){
     if(summaryCache[it.title_en]){
-      bodyHtml = `<div class="news-summary">${summaryCache[it.title_en]}</div>
-      <a class="news-link-btn" href="${it.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">元ニュースを見る</a>`;
+      card.appendChild(el('div',{class:'news-summary', text:summaryCache[it.title_en]}));
+      const link=el('a',{class:'news-link-btn', href:it.link, target:'_blank', rel:'noopener', text:'元ニュースを見る'});
+      link.addEventListener('click', e=>e.stopPropagation());
+      card.appendChild(link);
     } else {
-      bodyHtml = `<div class="summary-loading">🤖 要約を作成中…</div>`;
+      card.appendChild(el('div',{class:'summary-loading', text:'🤖 要約を作成中…'}));
     }
   }
-  return `<div class="news-card" onclick="toggleCard(${idx}, '${titleEnEsc}', '${descEnEsc}')">
-      <div class="news-meta">
-        ${matchedTag||""}
-        <span class="news-source">${it.source}</span>
-        <span class="news-time">${it.time}</span>
-        <span class="chevron${isOpen?' open':''}">▾</span>
-      </div>
-      <div class="news-title">${it.title_ja}</div>
-      ${bodyHtml}
-    </div>`;
+  return card;
 }
 
 function renderTopicItems(items){
-  const el=document.getElementById("newsList");
-  if(!el) return;
-  if(!items||!items.length){el.innerHTML=`<div class="empty">ニュースが見つかりませんでした。</div>`;return;}
+  const el2=document.getElementById("newsList");
+  if(!el2) return;
+  el2.innerHTML='';
+  if(!items||!items.length){
+    el2.innerHTML='<div class="empty">ニュースが見つかりませんでした。</div>';
+    return;
+  }
   const allPlayers=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth];
-  el.innerHTML='<div class="news-list">'+items.map((it,idx)=>{
+  const list=el('div',{class:'news-list'});
+  items.forEach((it,idx)=>{
     const matched=allPlayers.find(p=>it.title_en&&(it.title_en.includes(p.name)||it.title_en.toLowerCase().includes(p.display.replace(/\s/,"").toLowerCase())));
-    const tag = matched?`<span class="news-player-tag">${matched.display}</span>`:"";
-    return newsCardHTML(it, idx, tag);
-  }).join("")+'</div>';
+    list.appendChild(buildNewsCard(it, idx, matched?matched.display:null));
+  });
+  el2.appendChild(list);
 }
 
 async function selectPlayer(pos,idx){
@@ -270,26 +301,32 @@ async function selectPlayer(pos,idx){
 async function loadPlayerNews(pos,idx){
   const p=PLAYERS[pos][idx];
   const key=`${pos}-${idx}`;
-  const el=document.getElementById("playerNews");
-  if(!el)return;
-  if(listCache[key]){lastRenderedItems=listCache[key];lastRenderedKind='player';lastRenderedPlayer=p;renderPlayerItems(el,listCache[key],p);return;}
+  const elD=document.getElementById("playerNews");
+  if(!elD)return;
+  if(listCache[key]){lastRenderedItems=listCache[key];lastRenderedKind='player';lastRenderedPlayer=p;renderPlayerItems(elD,listCache[key],p);return;}
   const btn=document.getElementById("refreshBtn");
   btn.classList.add("loading");
   try{
     const items=await fetchNewsList(p.name, p.club);
     listCache[key]=items;
     lastRenderedItems=items;lastRenderedKind='player';lastRenderedPlayer=p;
-    renderPlayerItems(el,items,p);
+    renderPlayerItems(elD,items,p);
   }catch(e){
-    el.innerHTML=`<div class="err">取得に失敗。再度タップしてください。</div>`;
+    elD.innerHTML='<div class="err">取得に失敗。再度タップしてください。</div>';
   }finally{btn.classList.remove("loading");}
 }
 
-function renderPlayerItems(el,items,p){
-  if(!el) return;
-  if(!items||!items.length){el.innerHTML=`<div class="empty">${p.display}のニュースが見つかりませんでした。</div>`;return;}
-  el.innerHTML=`<div class="sec-lbl" style="margin-top:4px">${p.display}の最新ニュース</div><div class="news-list">`+
-    items.map((it,idx)=>newsCardHTML(it, idx, "")).join("")+"</div>";
+function renderPlayerItems(elD,items,p){
+  if(!elD) return;
+  elD.innerHTML='';
+  if(!items||!items.length){
+    elD.innerHTML=`<div class="empty">${p.display}のニュースが見つかりませんでした。</div>`;
+    return;
+  }
+  elD.appendChild(el('div',{class:'sec-lbl', style:'margin-top:4px', text:`${p.display}の最新ニュース`}));
+  const list=el('div',{class:'news-list'});
+  items.forEach((it,idx)=>list.appendChild(buildNewsCard(it, idx, null)));
+  elD.appendChild(list);
 }
 
 renderTabs();
