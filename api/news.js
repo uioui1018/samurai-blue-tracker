@@ -1,6 +1,6 @@
 // Vercel Serverless Function
-// GET /api/news?q=<player name>&club=<club name>(optional)              -> list (fast, no AI)
-// GET /api/news?topics=1                                                 -> homepage feed: national team + match results focused
+// GET /api/news?q=<player name>&club=<club name>(optional)&offset=<n>    -> list (fast, no AI)
+// GET /api/news?topics=1&offset=<n>                                      -> homepage feed: national team + match results focused
 // GET /api/news?summarize=1&title=<...>&desc=<...>                       -> single AI summary (on demand)
 
 function stripHtml(text) {
@@ -71,7 +71,7 @@ async function fetchAndParse(query) {
     if (!rssRes.ok) return [];
     const xml = await rssRes.text();
     const items = [];
-    const itemBlocks = xml.split('<item>').slice(1).slice(0, 15);
+    const itemBlocks = xml.split('<item>').slice(1).slice(0, 30);
     for (const block of itemBlocks) {
       const title = (block.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
       const link = (block.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || '';
@@ -101,8 +101,12 @@ function dedupe(items) {
   });
 }
 
+const PAGE_SIZE = 6;
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  const offset = parseInt(req.query.offset, 10) || 0;
 
   if (req.query.summarize === '1') {
     const { title, desc } = req.query;
@@ -126,15 +130,16 @@ export default async function handler(req, res) {
       const resultsArrays = await Promise.all(queries.map(fetchAndParse));
       let combined = dedupe(resultsArrays.flat());
       combined.sort((a, b) => b.parsedDate - a.parsedDate);
-      const topItems = combined.slice(0, 8);
+      const pageItems = combined.slice(offset, offset + PAGE_SIZE);
+      const hasMore = combined.length > offset + PAGE_SIZE;
 
-      if (topItems.length === 0) return res.status(200).json({ items: [] });
+      if (pageItems.length === 0) return res.status(200).json({ items: [], hasMore: false });
 
       const translatedTitles = await Promise.all(
-        topItems.map(it => translateText(it.title).catch(() => it.title))
+        pageItems.map(it => translateText(it.title).catch(() => it.title))
       );
 
-      const result = topItems.map((it, i) => ({
+      const result = pageItems.map((it, i) => ({
         title_ja: translatedTitles[i] || it.title,
         title_en: it.title,
         desc_en: it.desc || '',
@@ -142,7 +147,7 @@ export default async function handler(req, res) {
         source: it.source,
         time: formatTime(it.pubDate),
       }));
-      return res.status(200).json({ items: result });
+      return res.status(200).json({ items: result, hasMore });
     } catch (err) {
       return res.status(500).json({ error: 'fetch_failed', message: String(err && err.message || err) });
     }
@@ -164,17 +169,18 @@ export default async function handler(req, res) {
     const resultsArrays = await Promise.all(queries.map(fetchAndParse));
     let combined = dedupe(resultsArrays.flat());
     combined.sort((a, b) => b.parsedDate - a.parsedDate);
-    const topItems = combined.slice(0, 6);
+    const pageItems = combined.slice(offset, offset + PAGE_SIZE);
+    const hasMore = combined.length > offset + PAGE_SIZE;
 
-    if (topItems.length === 0) {
-      return res.status(200).json({ items: [] });
+    if (pageItems.length === 0) {
+      return res.status(200).json({ items: [], hasMore: false });
     }
 
     const translatedTitles = await Promise.all(
-      topItems.map(it => translateText(it.title).catch(() => it.title))
+      pageItems.map(it => translateText(it.title).catch(() => it.title))
     );
 
-    const result = topItems.map((it, i) => ({
+    const result = pageItems.map((it, i) => ({
       title_ja: translatedTitles[i] || it.title,
       title_en: it.title,
       desc_en: it.desc || '',
@@ -183,7 +189,7 @@ export default async function handler(req, res) {
       time: formatTime(it.pubDate),
     }));
 
-    res.status(200).json({ items: result });
+    res.status(200).json({ items: result, hasMore });
   } catch (err) {
     res.status(500).json({ error: 'fetch_failed', message: String(err && err.message || err) });
   }
