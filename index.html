@@ -100,7 +100,7 @@ body{
   box-shadow:0 2px 8px rgba(37,99,235,0.3);
 }
 .news-source{font-size:11.5px;color:#7e8bab;font-weight:600}
-.news-time{font-size:11.5px;color:#4a5578;margin-left:auto;font-weight:500}
+.news-time{font-size:13.5px;color:#8d97b8;margin-left:auto;font-weight:600}
 .chevron{
   font-size:13px;color:#5d6a8c;margin-left:2px;
   transition:transform .25s;display:inline-block;
@@ -315,6 +315,13 @@ function refreshCurrent(){
   renderView();
 }
 
+async function fetchTopicsList(){
+  const res=await fetch(`${API}?topics=1`);
+  if(!res.ok) throw new Error("api error");
+  const data=await res.json();
+  return data.items||[];
+}
+
 async function fetchNewsList(query,club){
   let url=`${API}?q=${encodeURIComponent(query)}`;
   if(club) url+=`&club=${encodeURIComponent(club)}`;
@@ -387,8 +394,7 @@ async function renderView(){
     if(listCache["__topics__"]){lastRenderedItems=listCache["__topics__"];lastRenderedKind='topics';renderTopicItems(listCache["__topics__"]);return;}
     btn.classList.add("loading");
     try{
-      const allNames=allPlayersFlat().map(p=>p.romaji).join(" OR ");
-      const items=await fetchNewsList("Japan national team "+allNames);
+      const items=await fetchTopicsList();
       listCache["__topics__"]=items;
       lastRenderedItems=items;lastRenderedKind='topics';
       renderTopicItems(items);
