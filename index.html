@@ -5,62 +5,180 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>サムライブルー追跡</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#f5f5f7;color:#1d1d1f;max-width:480px;margin:0 auto;padding:12px}
-.hdr{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:10px;border:0.5px solid #e0e0e0}
-.hdr-title{font-size:15px;font-weight:600}
-.hdr-sub{font-size:11px;color:#888;margin-top:2px}
-.refresh-btn{font-size:12px;color:#0066cc;border:1px solid #b3d4ff;background:#e8f0fe;padding:5px 11px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:4px}
-.refresh-btn.loading{opacity:.6;pointer-events:none}
-.tab-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+body{
+  font-family:'Zen Kaku Gothic New',-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  background:#0d1321;
+  color:#f2efe6;
+  max-width:520px;
+  margin:0 auto;
+  padding:14px;
+  min-height:100vh;
+}
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(135deg,#141b2e 0%,#1b2438 100%);
+  border-radius:18px;padding:16px 18px;margin-bottom:14px;
+  border:1px solid rgba(212,175,55,0.25);
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+.hdr-left{display:flex;align-items:center;gap:12px}
+.crow-icon{
+  width:42px;height:42px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #2a3552, #0d1321);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;border:1.5px solid #d4af37;
+  flex-shrink:0;
+}
+.hdr-title{font-size:18px;font-weight:900;letter-spacing:.02em;color:#f2efe6}
+.hdr-sub{font-size:11.5px;color:#9aa3b8;margin-top:3px;letter-spacing:.03em}
+.refresh-btn{
+  font-size:12.5px;font-weight:700;color:#d4af37;
+  border:1px solid rgba(212,175,55,0.4);
+  background:rgba(212,175,55,0.08);
+  padding:8px 14px;border-radius:24px;cursor:pointer;
+  display:flex;align-items:center;gap:5px;
+  transition:background .2s;
+}
+.refresh-btn:active{background:rgba(212,175,55,0.2)}
+.refresh-btn.loading{opacity:.55;pointer-events:none}
+.refresh-icon{display:inline-block}
+.refresh-btn.loading .refresh-icon{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.tab-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
 .tab-row::-webkit-scrollbar{display:none}
-.tab{font-size:12px;padding:6px 13px;border-radius:20px;border:1px solid #d0d0d0;background:#fff;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.tab.active{background:#1d1d1f;color:#fff;border-color:#1d1d1f;font-weight:500}
-.sec-lbl{font-size:10px;color:#999;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;padding:0 2px}
-.news-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
-.news-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:11px 13px;cursor:pointer}
-.news-card:active{background:#f7f7fa}
-.news-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
-.news-player-tag{font-size:10px;font-weight:600;color:#0066cc;background:#e8f0fe;padding:2px 7px;border-radius:10px}
-.news-source{font-size:10px;color:#999}
-.news-time{font-size:10px;color:#bbb;margin-left:auto}
-.news-title{font-size:13px;font-weight:500;color:#1d1d1f;line-height:1.5}
-.news-summary{font-size:12px;color:#555;line-height:1.7;margin-top:8px;padding-top:8px;border-top:0.5px solid #eee;white-space:pre-line}
-.news-link-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#0066cc;margin-top:9px;text-decoration:none;font-weight:500}
-.news-link-btn::after{content:"›";font-size:14px}
-.chevron{font-size:11px;color:#bbb;margin-left:4px;transition:transform .2s}
-.chevron.open{transform:rotate(90deg)}
-.summary-loading{font-size:11px;color:#999;margin-top:8px;padding-top:8px;border-top:0.5px solid #eee}
-.p-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
-.p-card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:10px 11px;cursor:pointer}
-.p-card.active{border:1.5px solid #0066cc;background:#f0f6ff}
-.p-name{font-size:13px;font-weight:600;color:#1d1d1f}
-.p-club{font-size:11px;color:#888;margin-top:2px}
-.p-row{display:flex;align-items:center;gap:4px;margin-top:4px}
-.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.p-league{font-size:10px;color:#666}
-.p-pos{font-size:10px;color:#bbb;margin-top:2px}
-.loading{text-align:center;padding:30px 0;color:#999;font-size:13px;line-height:1.8}
-.err{text-align:center;padding:20px 0;color:#c00;font-size:12px}
-.badge-rt{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#1a7f37;background:#d4f0dc;border:0.5px solid #a8ddb8;padding:3px 9px;border-radius:10px;margin-bottom:10px}
-.pulse{width:6px;height:6px;border-radius:50%;background:#1a7f37;animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
-.empty{text-align:center;padding:24px 0;color:#aaa;font-size:12px;line-height:1.8}
-.youth-note{font-size:11px;color:#888;line-height:1.6;padding:10px 12px;background:#fafafa;border-radius:8px;border:0.5px solid #e8e8e8;margin-top:4px}
-.injured{font-size:9px;color:#c00;border:0.5px solid #f3c0c0;background:#fdf0f0;padding:1px 5px;border-radius:8px;margin-left:4px}
+.tab{
+  font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:22px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.04);
+  color:#b8c0d4;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  transition:all .2s;
+}
+.tab.active{
+  background:linear-gradient(135deg,#d4af37,#b8932c);
+  color:#14182a;border-color:#d4af37;
+  box-shadow:0 2px 10px rgba(212,175,55,0.35);
+}
+
+.sec-lbl{
+  font-size:11.5px;font-weight:700;color:#7c869c;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;padding:0 2px;
+}
+
+.news-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.news-card{
+  background:linear-gradient(135deg,#161d30,#11172a);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;padding:16px 17px;cursor:pointer;
+  transition:border-color .2s, transform .1s;
+}
+.news-card:active{transform:scale(0.99)}
+.news-card.open{border-color:rgba(212,175,55,0.4)}
+.news-meta{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.news-player-tag{
+  font-size:11.5px;font-weight:700;color:#0d1321;
+  background:linear-gradient(135deg,#d4af37,#e8c968);
+  padding:4px 11px;border-radius:11px;
+}
+.news-source{font-size:11.5px;color:#7c869c;font-weight:500}
+.news-time{font-size:11.5px;color:#5a6378;margin-left:auto}
+.chevron{
+  font-size:13px;color:#7c869c;margin-left:2px;
+  transition:transform .25s;display:inline-block;
+}
+.chevron.open{transform:rotate(180deg);color:#d4af37}
+.news-title{
+  font-size:16px;font-weight:700;color:#f2efe6;line-height:1.55;
+  letter-spacing:.01em;
+}
+.news-summary{
+  font-size:14.5px;color:#cfd5e3;line-height:1.85;
+  margin-top:13px;padding-top:13px;
+  border-top:1px solid rgba(255,255,255,0.08);
+  white-space:pre-line;
+}
+.news-link-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:13px;font-weight:700;color:#d4af37;
+  margin-top:13px;text-decoration:none;
+  padding:7px 0;
+}
+.news-link-btn::after{content:"→";font-size:14px;transition:transform .2s}
+.news-link-btn:active::after{transform:translateX(3px)}
+.summary-loading{
+  font-size:13.5px;color:#9aa3b8;margin-top:13px;padding-top:13px;
+  border-top:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;gap:8px;
+}
+.summary-loading .dot-spin{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid rgba(212,175,55,0.25);
+  border-top-color:#d4af37;
+  animation:spin .8s linear infinite;flex-shrink:0;
+}
+
+.p-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.p-card{
+  background:linear-gradient(135deg,#161d30,#11172a);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;padding:14px 15px;cursor:pointer;
+  transition:border-color .2s, transform .1s;
+}
+.p-card:active{transform:scale(0.98)}
+.p-card.active{
+  border-color:#d4af37;
+  background:linear-gradient(135deg,#1f2438,#171c2c);
+  box-shadow:0 0 0 1px rgba(212,175,55,0.3);
+}
+.p-name{font-size:16px;font-weight:700;color:#f2efe6;line-height:1.3}
+.p-club{font-size:13px;color:#9aa3b8;margin-top:4px;font-weight:500}
+.p-row{display:flex;align-items:center;gap:6px;margin-top:7px}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.p-league{font-size:11.5px;color:#7c869c;font-weight:500}
+.p-pos{font-size:11px;color:#5a6378;margin-top:4px;font-weight:600;letter-spacing:.04em}
+
+.loading{
+  text-align:center;padding:50px 0;color:#9aa3b8;font-size:14.5px;line-height:1.9;
+}
+.loading-spinner{
+  width:32px;height:32px;border-radius:50%;margin:0 auto 14px;
+  border:3px solid rgba(212,175,55,0.2);
+  border-top-color:#d4af37;
+  animation:spin 1s linear infinite;
+}
+.err{text-align:center;padding:30px 0;color:#e8a0a0;font-size:13.5px;line-height:1.8}
+.badge-rt{
+  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+  color:#7fd99a;background:rgba(46,160,67,0.12);
+  border:1px solid rgba(46,160,67,0.3);padding:5px 12px;border-radius:12px;margin-bottom:12px;
+}
+.pulse{width:7px;height:7px;border-radius:50%;background:#3fb950;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.empty{text-align:center;padding:36px 0;color:#7c869c;font-size:13.5px;line-height:1.9}
+.youth-note{
+  font-size:13px;color:#9aa3b8;line-height:1.8;padding:14px 16px;
+  background:rgba(212,175,55,0.06);border-radius:14px;
+  border:1px solid rgba(212,175,55,0.15);margin-top:6px;
+}
+.injured{
+  font-size:10.5px;color:#e8a0a0;border:1px solid rgba(232,160,160,0.35);
+  background:rgba(232,160,160,0.08);padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600;
+}
 </style>
 </head>
 <body>
 
 <div class="hdr">
-  <div style="display:flex;align-items:center;gap:8px">
-    <span style="font-size:22px">🇯🇵</span>
+  <div class="hdr-left">
+    <div class="crow-icon">🐦‍⬛</div>
     <div>
       <div class="hdr-title">サムライブルー追跡</div>
       <div class="hdr-sub">W杯2026 招集メンバー</div>
     </div>
   </div>
-  <div class="refresh-btn" id="refreshBtn">↻ 更新</div>
+  <div class="refresh-btn" id="refreshBtn"><span class="refresh-icon">↻</span><span>更新</span></div>
 </div>
 
 <div class="tab-row" id="tabRow"></div>
@@ -72,44 +190,44 @@ const API = 'https://samurai-blue-tracker.vercel.app/api/news';
 const PLAYERS = {
   gk:[
     {name:"鈴木彩艶",romaji:"Zion Suzuki",display:"鈴木 彩艶",club:"パルマ",league:"セリエA",lc:"#3366cc",pos:"GK",num:1},
-    {name:"大迫敬介",romaji:"Keisuke Osako",display:"大迫 敬介",club:"サンフレッチェ広島",league:"J1リーグ",lc:"#1d4ed8",pos:"GK",num:12},
-    {name:"早川友基",romaji:"Tomoki Hayakawa",display:"早川 友基",club:"鹿島アントラーズ",league:"J1リーグ",lc:"#1d4ed8",pos:"GK",num:23},
+    {name:"大迫敬介",romaji:"Keisuke Osako",display:"大迫 敬介",club:"サンフレッチェ広島",league:"J1リーグ",lc:"#4f7df0",pos:"GK",num:12},
+    {name:"早川友基",romaji:"Tomoki Hayakawa",display:"早川 友基",club:"鹿島アントラーズ",league:"J1リーグ",lc:"#4f7df0",pos:"GK",num:23},
   ],
   df:[
-    {name:"菅原由勢",romaji:"Yukinari Sugawara",display:"菅原 由勢",club:"ヴェルダー・ブレーメン",league:"ブンデスリーガ",lc:"#cc3333",pos:"DF",num:2},
-    {name:"谷口彰悟",romaji:"Shogo Taniguchi",display:"谷口 彰悟",club:"シントトロイデン",league:"ベルギー1部",lc:"#7c3aed",pos:"DF",num:3},
-    {name:"板倉滉",romaji:"Ko Itakura",display:"板倉 滉",club:"アヤックス",league:"オランダ1部",lc:"#e84c1e",pos:"DF",num:4},
-    {name:"長友佑都",romaji:"Yuto Nagatomo",display:"長友 佑都",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"DF",num:5},
-    {name:"渡辺剛",romaji:"Tsuyoshi Watanabe",display:"渡辺 剛",club:"フェイエノールト",league:"オランダ1部",lc:"#e84c1e",pos:"DF",num:16},
-    {name:"伊藤洋輝",romaji:"Hiroki Ito",display:"伊藤 洋輝",club:"バイエルン・ミュンヘン",league:"ブンデスリーガ",lc:"#cc3333",pos:"DF",num:21},
-    {name:"冨安健洋",romaji:"Takehiro Tomiyasu",display:"冨安 健洋",club:"アヤックス",league:"オランダ1部",lc:"#e84c1e",pos:"DF",num:22},
-    {name:"瀬古歩夢",romaji:"Ayumu Seko",display:"瀬古 歩夢",club:"ル・アーヴル",league:"リーグ・アン",lc:"#3366cc",pos:"DF",num:20},
-    {name:"鈴木淳之介",romaji:"Junnosuke Suzuki",display:"鈴木 淳之介",club:"FCコペンハーゲン",league:"デンマーク1部",lc:"#7c3aed",pos:"DF",num:25},
+    {name:"菅原由勢",romaji:"Yukinari Sugawara",display:"菅原 由勢",club:"ヴェルダー・ブレーメン",league:"ブンデスリーガ",lc:"#e05c5c",pos:"DF",num:2},
+    {name:"谷口彰悟",romaji:"Shogo Taniguchi",display:"谷口 彰悟",club:"シントトロイデン",league:"ベルギー1部",lc:"#9b6fe0",pos:"DF",num:3},
+    {name:"板倉滉",romaji:"Ko Itakura",display:"板倉 滉",club:"アヤックス",league:"オランダ1部",lc:"#f08c4e",pos:"DF",num:4},
+    {name:"長友佑都",romaji:"Yuto Nagatomo",display:"長友 佑都",club:"FC東京",league:"J1リーグ",lc:"#4f7df0",pos:"DF",num:5},
+    {name:"渡辺剛",romaji:"Tsuyoshi Watanabe",display:"渡辺 剛",club:"フェイエノールト",league:"オランダ1部",lc:"#f08c4e",pos:"DF",num:16},
+    {name:"伊藤洋輝",romaji:"Hiroki Ito",display:"伊藤 洋輝",club:"バイエルン・ミュンヘン",league:"ブンデスリーガ",lc:"#e05c5c",pos:"DF",num:21},
+    {name:"冨安健洋",romaji:"Takehiro Tomiyasu",display:"冨安 健洋",club:"アヤックス",league:"オランダ1部",lc:"#f08c4e",pos:"DF",num:22},
+    {name:"瀬古歩夢",romaji:"Ayumu Seko",display:"瀬古 歩夢",club:"ル・アーヴル",league:"リーグ・アン",lc:"#5b8fd9",pos:"DF",num:20},
+    {name:"鈴木淳之介",romaji:"Junnosuke Suzuki",display:"鈴木 淳之介",club:"FCコペンハーゲン",league:"デンマーク1部",lc:"#9b6fe0",pos:"DF",num:25},
   ],
   mf:[
-    {name:"遠藤航",romaji:"Wataru Endo",display:"遠藤 航",club:"リバプール",league:"プレミアリーグ",lc:"#9b0000",pos:"MF",num:6,note:"6/12離脱"},
-    {name:"伊東純也",romaji:"Junya Ito",display:"伊東 純也",club:"KRCゲンク",league:"ベルギー1部",lc:"#7c3aed",pos:"MF",num:14},
-    {name:"鎌田大地",romaji:"Daichi Kamada",display:"鎌田 大地",club:"クリスタル・パレス",league:"プレミアリーグ",lc:"#9b0000",pos:"MF",num:15},
-    {name:"堂安律",romaji:"Ritsu Doan",display:"堂安 律",club:"アイントラハト・フランクフルト",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:10},
-    {name:"田中碧",romaji:"Ao Tanaka",display:"田中 碧",club:"リーズ",league:"プレミアリーグ",lc:"#9b0000",pos:"MF",num:7},
-    {name:"町野修斗",romaji:"Shuto Machino",display:"町野 修斗",club:"ボルシアMG",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:6,note:"6/12追加招集"},
-    {name:"中村敬斗",romaji:"Keito Nakamura",display:"中村 敬斗",club:"スタッド・ランス",league:"リーグ・アン",lc:"#3366cc",pos:"MF",num:13},
-    {name:"佐野海舟",romaji:"Kaishu Sano",display:"佐野 海舟",club:"マインツ05",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:24},
-    {name:"久保建英",romaji:"Takefusa Kubo",display:"久保 建英",club:"レアル・ソシエダ",league:"ラ・リーガ",lc:"#f5a623",pos:"MF",num:8},
-    {name:"鈴木唯人",romaji:"Yuito Suzuki",display:"鈴木 唯人",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:17},
-    {name:"塩貝健人",romaji:"Kento Shiogai",display:"塩貝 健人",club:"VfLヴォルフスブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:26},
+    {name:"遠藤航",romaji:"Wataru Endo",display:"遠藤 航",club:"リバプール",league:"プレミアリーグ",lc:"#d9485a",pos:"MF",num:6,note:"6/12離脱"},
+    {name:"伊東純也",romaji:"Junya Ito",display:"伊東 純也",club:"KRCゲンク",league:"ベルギー1部",lc:"#9b6fe0",pos:"MF",num:14},
+    {name:"鎌田大地",romaji:"Daichi Kamada",display:"鎌田 大地",club:"クリスタル・パレス",league:"プレミアリーグ",lc:"#d9485a",pos:"MF",num:15},
+    {name:"堂安律",romaji:"Ritsu Doan",display:"堂安 律",club:"アイントラハト・フランクフルト",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:10},
+    {name:"田中碧",romaji:"Ao Tanaka",display:"田中 碧",club:"リーズ",league:"プレミアリーグ",lc:"#d9485a",pos:"MF",num:7},
+    {name:"町野修斗",romaji:"Shuto Machino",display:"町野 修斗",club:"ボルシアMG",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:6,note:"6/12追加招集"},
+    {name:"中村敬斗",romaji:"Keito Nakamura",display:"中村 敬斗",club:"スタッド・ランス",league:"リーグ・アン",lc:"#5b8fd9",pos:"MF",num:13},
+    {name:"佐野海舟",romaji:"Kaishu Sano",display:"佐野 海舟",club:"マインツ05",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:24},
+    {name:"久保建英",romaji:"Takefusa Kubo",display:"久保 建英",club:"レアル・ソシエダ",league:"ラ・リーガ",lc:"#e8b84f",pos:"MF",num:8},
+    {name:"鈴木唯人",romaji:"Yuito Suzuki",display:"鈴木 唯人",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:17},
+    {name:"塩貝健人",romaji:"Kento Shiogai",display:"塩貝 健人",club:"VfLヴォルフスブルク",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:26},
   ],
   fw:[
-    {name:"小川航基",romaji:"Koki Ogawa",display:"小川 航基",club:"NECナイメヘン",league:"オランダ1部",lc:"#e84c1e",pos:"FW",num:19},
-    {name:"前田大然",romaji:"Daizen Maeda",display:"前田 大然",club:"セルティック",league:"スコティッシュPL",lc:"#16a34a",pos:"FW",num:11},
-    {name:"上田綺世",romaji:"Ayase Ueda",display:"上田 綺世",club:"フェイエノールト",league:"オランダ1部",lc:"#e84c1e",pos:"FW",num:18},
-    {name:"後藤啓介",romaji:"Keisuke Goto",display:"後藤 啓介",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"FW",num:9},
+    {name:"小川航基",romaji:"Koki Ogawa",display:"小川 航基",club:"NECナイメヘン",league:"オランダ1部",lc:"#f08c4e",pos:"FW",num:19},
+    {name:"前田大然",romaji:"Daizen Maeda",display:"前田 大然",club:"セルティック",league:"スコティッシュPL",lc:"#5fbf73",pos:"FW",num:11},
+    {name:"上田綺世",romaji:"Ayase Ueda",display:"上田 綺世",club:"フェイエノールト",league:"オランダ1部",lc:"#f08c4e",pos:"FW",num:18},
+    {name:"後藤啓介",romaji:"Keisuke Goto",display:"後藤 啓介",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#e05c5c",pos:"FW",num:9},
   ],
   youth:[
-    {name:"松木玖生",romaji:"Kuryu Matsuki",display:"松木 玖生",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"MF / 22歳"},
-    {name:"高井幸大",romaji:"Kota Takai",display:"高井 幸大",club:"トッテナム",league:"プレミアリーグ",lc:"#9b0000",pos:"DF / 19歳"},
-    {name:"細谷真大",romaji:"Mahiro Hosoya",display:"細谷 真大",club:"柏レイソル",league:"J1リーグ",lc:"#f5a623",pos:"FW / 22歳"},
-    {name:"藤田譜人",romaji:"Hayato Fujita",display:"藤田 譜人",club:"レンヌ",league:"リーグ・アン",lc:"#3366cc",pos:"MF / 20歳"},
+    {name:"松木玖生",romaji:"Kuryu Matsuki",display:"松木 玖生",club:"FC東京",league:"J1リーグ",lc:"#4f7df0",pos:"MF / 22歳"},
+    {name:"高井幸大",romaji:"Kota Takai",display:"高井 幸大",club:"トッテナム",league:"プレミアリーグ",lc:"#d9485a",pos:"DF / 19歳"},
+    {name:"細谷真大",romaji:"Mahiro Hosoya",display:"細谷 真大",club:"柏レイソル",league:"J1リーグ",lc:"#e8b84f",pos:"FW / 22歳"},
+    {name:"藤田譜人",romaji:"Hayato Fujita",display:"藤田 譜人",club:"レンヌ",league:"リーグ・アン",lc:"#5b8fd9",pos:"MF / 20歳"},
   ]
 };
 
@@ -146,213 +264,5 @@ function renderTabs(){
   const row=document.getElementById("tabRow");
   row.innerHTML="";
   TABS.forEach(t=>{
-    const d=el('div',{class:'tab'+(currentTab===t.id?' active':''), text:t.label, onclick:()=>switchTab(t.id)});
-    row.appendChild(d);
-  });
-}
+    const d=el('
 
-function switchTab(tab){
-  currentTab=tab;
-  openCard=null;
-  renderTabs();
-  renderView();
-}
-
-document.getElementById('refreshBtn').addEventListener('click', refreshCurrent);
-function refreshCurrent(){
-  openCard=null;
-  if(currentTab==="topics"){
-    delete listCache["__topics__"];
-  } else {
-    const sel=selectedPlayer[currentTab];
-    if(sel!==undefined) delete listCache[`${currentTab}-${sel}`];
-  }
-  renderView();
-}
-
-async function fetchNewsList(query,club){
-  let url=`${API}?q=${encodeURIComponent(query)}`;
-  if(club) url+=`&club=${encodeURIComponent(club)}`;
-  const res=await fetch(url);
-  if(!res.ok) throw new Error("api error");
-  const data=await res.json();
-  return data.items||[];
-}
-
-async function fetchSummary(titleEn, descEn){
-  if(summaryCache[titleEn]) return summaryCache[titleEn];
-  const url=`${API}?summarize=1&title=${encodeURIComponent(titleEn)}&desc=${encodeURIComponent(descEn||'')}`;
-  const res=await fetch(url);
-  if(!res.ok) throw new Error("summary error");
-  const data=await res.json();
-  summaryCache[titleEn]=data.summary_ja||'';
-  return summaryCache[titleEn];
-}
-
-function renderCurrentList(){
-  if(lastRenderedKind==='topics') renderTopicItems(lastRenderedItems);
-  else if(lastRenderedKind==='player') renderPlayerItems(document.getElementById('playerNews'), lastRenderedItems, lastRenderedPlayer);
-}
-
-async function toggleCard(idx, item){
-  const wasOpen = openCard===idx;
-  openCard = wasOpen ? null : idx;
-  renderCurrentList();
-  if(!wasOpen && !summaryCache[item.title_en]){
-    try{
-      await fetchSummary(item.title_en, item.desc_en);
-      renderCurrentList();
-    }catch(e){
-      summaryCache[item.title_en]='要約の取得に失敗しました。';
-      renderCurrentList();
-    }
-  }
-}
-
-function allPlayersFlat(){
-  return [...PLAYERS.gk,...PLAYERS.df,...PLAYERS.mf,...PLAYERS.fw,...PLAYERS.youth];
-}
-
-function matchPlayer(titleEn){
-  if(!titleEn) return null;
-  const lower = titleEn.toLowerCase();
-  return allPlayersFlat().find(p=>{
-    if(titleEn.includes(p.name)) return true;
-    if(p.romaji && lower.includes(p.romaji.toLowerCase())) return true;
-    const surnameRomaji = p.romaji ? p.romaji.split(' ').pop().toLowerCase() : '';
-    if(surnameRomaji && surnameRomaji.length>2 && lower.includes(surnameRomaji)) return true;
-    return false;
-  });
-}
-
-async function renderView(){
-  const v=document.getElementById("mainView");
-  const btn=document.getElementById("refreshBtn");
-
-  if(currentTab==="topics"){
-    v.innerHTML='';
-    const badge=el('div',{class:'badge-rt'});
-    badge.innerHTML='<span class="pulse"></span>Google Newsリアルタイム';
-    v.appendChild(badge);
-    v.appendChild(el('div',{class:'sec-lbl', text:'主要トピック'}));
-    const listDiv=el('div',{id:'newsList'});
-    listDiv.innerHTML='<div class="loading">🔍 世界のニュースを検索中…</div>';
-    v.appendChild(listDiv);
-
-    if(listCache["__topics__"]){lastRenderedItems=listCache["__topics__"];lastRenderedKind='topics';renderTopicItems(listCache["__topics__"]);return;}
-    btn.classList.add("loading");
-    try{
-      const allNames=allPlayersFlat().map(p=>p.romaji).join(" OR ");
-      const items=await fetchNewsList("Japan national team "+allNames);
-      listCache["__topics__"]=items;
-      lastRenderedItems=items;lastRenderedKind='topics';
-      renderTopicItems(items);
-    }catch(e){
-      document.getElementById("newsList").innerHTML='<div class="err">取得に失敗しました。更新を押してください。</div>';
-    }finally{btn.classList.remove("loading");}
-  } else {
-    const players=PLAYERS[currentTab]||[];
-    const sel=selectedPlayer[currentTab];
-    v.innerHTML='';
-    const grid=el('div',{class:'p-grid'});
-    players.forEach((p,i)=>{
-      const card=el('div',{class:'p-card'+(sel===i?' active':''), onclick:()=>selectPlayer(currentTab,i)});
-      card.innerHTML=`<div class="p-name">${p.display}${p.note?`<span class="injured">${p.note}</span>`:''}</div><div class="p-club">${p.club}</div><div class="p-row"><span class="ldot" style="background:${p.lc}"></span><span class="p-league">${p.league}</span></div><div class="p-pos">${p.pos}</div>`;
-      grid.appendChild(card);
-    });
-    v.appendChild(grid);
-    const newsDiv=el('div',{id:'playerNews'});
-    newsDiv.innerHTML = sel!==undefined ? '<div class="loading">検索中…</div>' : '<div class="empty">選手をタップするとニュースを表示します</div>';
-    v.appendChild(newsDiv);
-    if(currentTab==="youth"){
-      const note=el('div',{class:'youth-note', text:'2030年W杯で活躍が期待される若手選手を中心に掲載しています。'});
-      v.appendChild(note);
-    }
-    if(sel!==undefined) loadPlayerNews(currentTab,sel);
-  }
-}
-
-function buildNewsCard(it, idx, matchedTagText){
-  const isOpen = openCard===idx;
-  const card=el('div',{class:'news-card', onclick:()=>toggleCard(idx, it)});
-  const meta=el('div',{class:'news-meta'});
-  if(matchedTagText){
-    meta.appendChild(el('span',{class:'news-player-tag', text:matchedTagText}));
-  }
-  meta.appendChild(el('span',{class:'news-source', text:it.source}));
-  meta.appendChild(el('span',{class:'news-time', text:it.time}));
-  meta.appendChild(el('span',{class:'chevron'+(isOpen?' open':''), text:'▾'}));
-  card.appendChild(meta);
-  card.appendChild(el('div',{class:'news-title', text:it.title_ja}));
-  if(isOpen){
-    if(summaryCache[it.title_en]){
-      card.appendChild(el('div',{class:'news-summary', text:summaryCache[it.title_en]}));
-      const link=el('a',{class:'news-link-btn', href:it.link, target:'_blank', rel:'noopener', text:'元ニュースを見る'});
-      link.addEventListener('click', e=>e.stopPropagation());
-      card.appendChild(link);
-    } else {
-      card.appendChild(el('div',{class:'summary-loading', text:'🤖 要約を作成中…'}));
-    }
-  }
-  return card;
-}
-
-function renderTopicItems(items){
-  const el2=document.getElementById("newsList");
-  if(!el2) return;
-  el2.innerHTML='';
-  if(!items||!items.length){
-    el2.innerHTML='<div class="empty">ニュースが見つかりませんでした。</div>';
-    return;
-  }
-  const list=el('div',{class:'news-list'});
-  items.forEach((it,idx)=>{
-    const matched=matchPlayer(it.title_en);
-    list.appendChild(buildNewsCard(it, idx, matched?matched.display:null));
-  });
-  el2.appendChild(list);
-}
-
-async function selectPlayer(pos,idx){
-  selectedPlayer[pos]=idx;
-  openCard=null;
-  document.querySelectorAll(".p-card").forEach((c,i)=>c.classList.toggle("active",i===idx));
-  document.getElementById("playerNews").innerHTML='<div class="loading">🔍 検索中…</div>';
-  loadPlayerNews(pos,idx);
-}
-
-async function loadPlayerNews(pos,idx){
-  const p=PLAYERS[pos][idx];
-  const key=`${pos}-${idx}`;
-  const elD=document.getElementById("playerNews");
-  if(!elD)return;
-  if(listCache[key]){lastRenderedItems=listCache[key];lastRenderedKind='player';lastRenderedPlayer=p;renderPlayerItems(elD,listCache[key],p);return;}
-  const btn=document.getElementById("refreshBtn");
-  btn.classList.add("loading");
-  try{
-    const items=await fetchNewsList(p.romaji || p.name, p.club);
-    listCache[key]=items;
-    lastRenderedItems=items;lastRenderedKind='player';lastRenderedPlayer=p;
-    renderPlayerItems(elD,items,p);
-  }catch(e){
-    elD.innerHTML='<div class="err">取得に失敗。再度タップしてください。</div>';
-  }finally{btn.classList.remove("loading");}
-}
-
-function renderPlayerItems(elD,items,p){
-  if(!elD) return;
-  elD.innerHTML='';
-  if(!items||!items.length){
-    elD.innerHTML=`<div class="empty">${p.display}のニュースが見つかりませんでした。</div>`;
-    return;
-  }
-  elD.appendChild(el('div',{class:'sec-lbl', style:'margin-top:4px', text:`${p.display}の最新ニュース`}));
-  const list=el('div',{class:'news-list'});
-  items.forEach((it,idx)=>list.appendChild(buildNewsCard(it, idx, null)));
-  elD.appendChild(list);
-}
-
-renderTabs();
-renderView();
-</script>
-</body>
