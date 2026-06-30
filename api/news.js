@@ -14,6 +14,18 @@ async function translateText(text) {
   }
 }
 
+function formatTime(pubDate) {
+  if (!pubDate) return '';
+  const parsed = Date.parse(pubDate);
+  if (isNaN(parsed)) return '';
+  const diffSec = Math.floor((Date.now() - parsed) / 1000);
+  if (diffSec < 0) return 'たった今';
+  if (diffSec < 3600) return `${Math.max(1, Math.floor(diffSec / 60))}分前`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}時間前`;
+  if (diffSec < 86400 * 30) return `${Math.floor(diffSec / 86400)}日前`;
+  return new Date(parsed).toLocaleDateString('ja-JP');
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
@@ -36,7 +48,7 @@ export default async function handler(req, res) {
       const source = (block.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1] || '';
       const cleanTitle = title.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
       if (cleanTitle) {
-        items.push({ title: cleanTitle, link: link.trim(), pubDate, source: source.trim() });
+        items.push({ title: cleanTitle, link: link.trim(), pubDate: pubDate.trim(), source: source.trim() });
       }
     }
 
@@ -46,23 +58,13 @@ export default async function handler(req, res) {
 
     const translated = await Promise.all(items.map(it => translateText(it.title)));
 
-    const now = Date.now();
-    const result = items.map((it, i) => {
-      let time = '';
-      if (it.pubDate) {
-        const diffSec = Math.floor((now - new Date(it.pubDate).getTime()) / 1000);
-        if (diffSec < 3600) time = `${Math.max(1, Math.floor(diffSec / 60))}分前`;
-        else if (diffSec < 86400) time = `${Math.floor(diffSec / 3600)}時間前`;
-        else time = `${Math.floor(diffSec / 86400)}日前`;
-      }
-      return {
-        title_ja: translated[i] || it.title,
-        title_en: it.title,
-        link: it.link,
-        source: it.source,
-        time,
-      };
-    });
+    const result = items.map((it, i) => ({
+      title_ja: translated[i] || it.title,
+      title_en: it.title,
+      link: it.link,
+      source: it.source,
+      time: formatTime(it.pubDate),
+    }));
 
     res.status(200).json({ items: result });
   } catch (err) {
