@@ -47,6 +47,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;ba
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
 .empty{text-align:center;padding:24px 0;color:#aaa;font-size:12px;line-height:1.8}
 .youth-note{font-size:11px;color:#888;line-height:1.6;padding:10px 12px;background:#fafafa;border-radius:8px;border:0.5px solid #e8e8e8;margin-top:4px}
+.injured{font-size:9px;color:#c00;border:0.5px solid #f3c0c0;background:#fdf0f0;padding:1px 5px;border-radius:8px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -56,7 +57,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;ba
     <span style="font-size:22px">🇯🇵</span>
     <div>
       <div class="hdr-title">サムライブルー追跡</div>
-      <div class="hdr-sub">代表選手のクラブ動向</div>
+      <div class="hdr-sub">W杯2026 招集メンバー</div>
     </div>
   </div>
   <div class="refresh-btn" id="refreshBtn">↻ 更新</div>
@@ -69,50 +70,57 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;ba
 const API = 'https://samurai-blue-tracker.vercel.app/api/news';
 
 const PLAYERS = {
-  fw:[
-    {name:"上田綺世",display:"上田 綺世",club:"フェイエノールト",league:"エールディビジ",lc:"#e84c1e",pos:"CF"},
-    {name:"中村敬斗",display:"中村 敬斗",club:"スタッド・ランス",league:"リーグ・アン",lc:"#3366cc",pos:"LW"},
-    {name:"浅野拓磨",display:"浅野 拓磨",club:"ボーフム",league:"ブンデスリーガ",lc:"#cc3333",pos:"RW"},
-    {name:"前田大然",display:"前田 大然",club:"セルティック",league:"スコティッシュPL",lc:"#16a34a",pos:"FW"},
-  ],
-  mf:[
-    {name:"久保建英",display:"久保 建英",club:"レアル・ソシエダ",league:"ラ・リーガ",lc:"#f5a623",pos:"MF/RW"},
-    {name:"堂安律",display:"堂安 律",club:"フライブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF"},
-    {name:"鎌田大地",display:"鎌田 大地",club:"クリスタル・パレス",league:"プレミアリーグ",lc:"#9b0000",pos:"MF"},
-    {name:"遠藤航",display:"遠藤 航",club:"リバプール",league:"プレミアリーグ",lc:"#9b0000",pos:"DM"},
-    {name:"守田英正",display:"守田 英正",club:"スポルティング",league:"プリメイラ",lc:"#16a34a",pos:"MF"},
-    {name:"田中碧",display:"田中 碧",club:"リーズ",league:"チャンピオンシップ",lc:"#f5a623",pos:"MF"},
+  gk:[
+    {name:"鈴木彩艶",romaji:"Zion Suzuki",display:"鈴木 彩艶",club:"パルマ",league:"セリエA",lc:"#3366cc",pos:"GK",num:1},
+    {name:"大迫敬介",romaji:"Keisuke Osako",display:"大迫 敬介",club:"サンフレッチェ広島",league:"J1リーグ",lc:"#1d4ed8",pos:"GK",num:12},
+    {name:"早川友基",romaji:"Tomoki Hayakawa",display:"早川 友基",club:"鹿島アントラーズ",league:"J1リーグ",lc:"#1d4ed8",pos:"GK",num:23},
   ],
   df:[
-    {name:"三笘薫",display:"三笘 薫",club:"ブライトン",league:"プレミアリーグ",lc:"#9b0000",pos:"LW/LB"},
-    {name:"冨安健洋",display:"冨安 健洋",club:"アーセナル",league:"プレミアリーグ",lc:"#9b0000",pos:"CB/RB"},
-    {name:"板倉滉",display:"板倉 滉",club:"ボルシアMG",league:"ブンデスリーガ",lc:"#cc3333",pos:"CB"},
-    {name:"谷口彰悟",display:"谷口 彰悟",club:"アル・ラーヤン",league:"カタールSL",lc:"#7c3aed",pos:"CB"},
-    {name:"長友佑都",display:"長友 佑都",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"LB"},
-    {name:"菅原由勢",display:"菅原 由勢",club:"サウサンプトン",league:"プレミアリーグ",lc:"#9b0000",pos:"RB"},
+    {name:"菅原由勢",romaji:"Yukinari Sugawara",display:"菅原 由勢",club:"ヴェルダー・ブレーメン",league:"ブンデスリーガ",lc:"#cc3333",pos:"DF",num:2},
+    {name:"谷口彰悟",romaji:"Shogo Taniguchi",display:"谷口 彰悟",club:"シントトロイデン",league:"ベルギー1部",lc:"#7c3aed",pos:"DF",num:3},
+    {name:"板倉滉",romaji:"Ko Itakura",display:"板倉 滉",club:"アヤックス",league:"オランダ1部",lc:"#e84c1e",pos:"DF",num:4},
+    {name:"長友佑都",romaji:"Yuto Nagatomo",display:"長友 佑都",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"DF",num:5},
+    {name:"渡辺剛",romaji:"Tsuyoshi Watanabe",display:"渡辺 剛",club:"フェイエノールト",league:"オランダ1部",lc:"#e84c1e",pos:"DF",num:16},
+    {name:"伊藤洋輝",romaji:"Hiroki Ito",display:"伊藤 洋輝",club:"バイエルン・ミュンヘン",league:"ブンデスリーガ",lc:"#cc3333",pos:"DF",num:21},
+    {name:"冨安健洋",romaji:"Takehiro Tomiyasu",display:"冨安 健洋",club:"アヤックス",league:"オランダ1部",lc:"#e84c1e",pos:"DF",num:22},
+    {name:"瀬古歩夢",romaji:"Ayumu Seko",display:"瀬古 歩夢",club:"ル・アーヴル",league:"リーグ・アン",lc:"#3366cc",pos:"DF",num:20},
+    {name:"鈴木淳之介",romaji:"Junnosuke Suzuki",display:"鈴木 淳之介",club:"FCコペンハーゲン",league:"デンマーク1部",lc:"#7c3aed",pos:"DF",num:25},
   ],
-  gk:[
-    {name:"シュミットダニエル",display:"シュミット D.",club:"シント＝トロイデン",league:"プロリーグ",lc:"#7c3aed",pos:"GK"},
-    {name:"前川黛也",display:"前川 黛也",club:"ヴィッセル神戸",league:"J1リーグ",lc:"#1d4ed8",pos:"GK"},
-    {name:"鈴木彩艶",display:"鈴木 彩艶",club:"パルマ",league:"セリエA",lc:"#3366cc",pos:"GK"},
+  mf:[
+    {name:"遠藤航",romaji:"Wataru Endo",display:"遠藤 航",club:"リバプール",league:"プレミアリーグ",lc:"#9b0000",pos:"MF",num:6,note:"6/12離脱"},
+    {name:"伊東純也",romaji:"Junya Ito",display:"伊東 純也",club:"KRCゲンク",league:"ベルギー1部",lc:"#7c3aed",pos:"MF",num:14},
+    {name:"鎌田大地",romaji:"Daichi Kamada",display:"鎌田 大地",club:"クリスタル・パレス",league:"プレミアリーグ",lc:"#9b0000",pos:"MF",num:15},
+    {name:"堂安律",romaji:"Ritsu Doan",display:"堂安 律",club:"アイントラハト・フランクフルト",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:10},
+    {name:"田中碧",romaji:"Ao Tanaka",display:"田中 碧",club:"リーズ",league:"プレミアリーグ",lc:"#9b0000",pos:"MF",num:7},
+    {name:"町野修斗",romaji:"Shuto Machino",display:"町野 修斗",club:"ボルシアMG",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:6,note:"6/12追加招集"},
+    {name:"中村敬斗",romaji:"Keito Nakamura",display:"中村 敬斗",club:"スタッド・ランス",league:"リーグ・アン",lc:"#3366cc",pos:"MF",num:13},
+    {name:"佐野海舟",romaji:"Kaishu Sano",display:"佐野 海舟",club:"マインツ05",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:24},
+    {name:"久保建英",romaji:"Takefusa Kubo",display:"久保 建英",club:"レアル・ソシエダ",league:"ラ・リーガ",lc:"#f5a623",pos:"MF",num:8},
+    {name:"鈴木唯人",romaji:"Yuito Suzuki",display:"鈴木 唯人",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:17},
+    {name:"塩貝健人",romaji:"Kento Shiogai",display:"塩貝 健人",club:"VfLヴォルフスブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF",num:26},
+  ],
+  fw:[
+    {name:"小川航基",romaji:"Koki Ogawa",display:"小川 航基",club:"NECナイメヘン",league:"オランダ1部",lc:"#e84c1e",pos:"FW",num:19},
+    {name:"前田大然",romaji:"Daizen Maeda",display:"前田 大然",club:"セルティック",league:"スコティッシュPL",lc:"#16a34a",pos:"FW",num:11},
+    {name:"上田綺世",romaji:"Ayase Ueda",display:"上田 綺世",club:"フェイエノールト",league:"オランダ1部",lc:"#e84c1e",pos:"FW",num:18},
+    {name:"後藤啓介",romaji:"Keisuke Goto",display:"後藤 啓介",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"FW",num:9},
   ],
   youth:[
-    {name:"松木玖生",display:"松木 玖生",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"MF / 22歳"},
-    {name:"佐野航大",display:"佐野 航大",club:"マインツ",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF / 23歳"},
-    {name:"細谷真大",display:"細谷 真大",club:"柏レイソル",league:"J1リーグ",lc:"#f5a623",pos:"FW / 22歳"},
-    {name:"高井幸大",display:"高井 幸大",club:"川崎F",league:"J1リーグ",lc:"#1d4ed8",pos:"CB / 19歳"},
+    {name:"松木玖生",romaji:"Kuryu Matsuki",display:"松木 玖生",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"MF / 22歳"},
+    {name:"高井幸大",romaji:"Kota Takai",display:"高井 幸大",club:"トッテナム",league:"プレミアリーグ",lc:"#9b0000",pos:"DF / 19歳"},
+    {name:"細谷真大",romaji:"Mahiro Hosoya",display:"細谷 真大",club:"柏レイソル",league:"J1リーグ",lc:"#f5a623",pos:"FW / 22歳"},
+    {name:"藤田譜人",romaji:"Hayato Fujita",display:"藤田 譜人",club:"レンヌ",league:"リーグ・アン",lc:"#3366cc",pos:"MF / 20歳"},
   ]
 };
 
 const TABS=[
   {id:"topics",label:"トップ"},
-  {id:"fw",label:"FW"},
-  {id:"mf",label:"MF"},
-  {id:"df",label:"DF"},
   {id:"gk",label:"GK"},
+  {id:"df",label:"DF"},
+  {id:"mf",label:"MF"},
+  {id:"fw",label:"FW"},
   {id:"youth",label:"注目若手"},
 ];
-
 let currentTab="topics";
 let selectedPlayer={};
 let openCard=null;
@@ -201,6 +209,22 @@ async function toggleCard(idx, item){
   }
 }
 
+function allPlayersFlat(){
+  return [...PLAYERS.gk,...PLAYERS.df,...PLAYERS.mf,...PLAYERS.fw,...PLAYERS.youth];
+}
+
+function matchPlayer(titleEn){
+  if(!titleEn) return null;
+  const lower = titleEn.toLowerCase();
+  return allPlayersFlat().find(p=>{
+    if(titleEn.includes(p.name)) return true;
+    if(p.romaji && lower.includes(p.romaji.toLowerCase())) return true;
+    const surnameRomaji = p.romaji ? p.romaji.split(' ').pop().toLowerCase() : '';
+    if(surnameRomaji && surnameRomaji.length>2 && lower.includes(surnameRomaji)) return true;
+    return false;
+  });
+}
+
 async function renderView(){
   const v=document.getElementById("mainView");
   const btn=document.getElementById("refreshBtn");
@@ -218,7 +242,7 @@ async function renderView(){
     if(listCache["__topics__"]){lastRenderedItems=listCache["__topics__"];lastRenderedKind='topics';renderTopicItems(listCache["__topics__"]);return;}
     btn.classList.add("loading");
     try{
-      const allNames=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth].map(p=>p.name).join(" OR ");
+      const allNames=allPlayersFlat().map(p=>p.romaji).join(" OR ");
       const items=await fetchNewsList("Japan national team "+allNames);
       listCache["__topics__"]=items;
       lastRenderedItems=items;lastRenderedKind='topics';
@@ -233,7 +257,7 @@ async function renderView(){
     const grid=el('div',{class:'p-grid'});
     players.forEach((p,i)=>{
       const card=el('div',{class:'p-card'+(sel===i?' active':''), onclick:()=>selectPlayer(currentTab,i)});
-      card.innerHTML=`<div class="p-name">${p.display}</div><div class="p-club">${p.club}</div><div class="p-row"><span class="ldot" style="background:${p.lc}"></span><span class="p-league">${p.league}</span></div><div class="p-pos">${p.pos}</div>`;
+      card.innerHTML=`<div class="p-name">${p.display}${p.note?`<span class="injured">${p.note}</span>`:''}</div><div class="p-club">${p.club}</div><div class="p-row"><span class="ldot" style="background:${p.lc}"></span><span class="p-league">${p.league}</span></div><div class="p-pos">${p.pos}</div>`;
       grid.appendChild(card);
     });
     v.appendChild(grid);
@@ -241,7 +265,7 @@ async function renderView(){
     newsDiv.innerHTML = sel!==undefined ? '<div class="loading">検索中…</div>' : '<div class="empty">選手をタップするとニュースを表示します</div>';
     v.appendChild(newsDiv);
     if(currentTab==="youth"){
-      const note=el('div',{class:'youth-note', text:'2030年W杯で23歳以下となる選手を中心に掲載しています。'});
+      const note=el('div',{class:'youth-note', text:'2030年W杯で活躍が期待される若手選手を中心に掲載しています。'});
       v.appendChild(note);
     }
     if(sel!==undefined) loadPlayerNews(currentTab,sel);
@@ -281,10 +305,9 @@ function renderTopicItems(items){
     el2.innerHTML='<div class="empty">ニュースが見つかりませんでした。</div>';
     return;
   }
-  const allPlayers=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth];
   const list=el('div',{class:'news-list'});
   items.forEach((it,idx)=>{
-    const matched=allPlayers.find(p=>it.title_en&&(it.title_en.includes(p.name)||it.title_en.toLowerCase().includes(p.display.replace(/\s/,"").toLowerCase())));
+    const matched=matchPlayer(it.title_en);
     list.appendChild(buildNewsCard(it, idx, matched?matched.display:null));
   });
   el2.appendChild(list);
@@ -307,7 +330,7 @@ async function loadPlayerNews(pos,idx){
   const btn=document.getElementById("refreshBtn");
   btn.classList.add("loading");
   try{
-    const items=await fetchNewsList(p.name, p.club);
+    const items=await fetchNewsList(p.romaji || p.name, p.club);
     listCache[key]=items;
     lastRenderedItems=items;lastRenderedKind='player';lastRenderedPlayer=p;
     renderPlayerItems(elD,items,p);
@@ -333,4 +356,3 @@ renderTabs();
 renderView();
 </script>
 </body>
-</html>
