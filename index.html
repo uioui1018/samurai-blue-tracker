@@ -25,11 +25,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;ba
 .news-source{font-size:10px;color:#999}
 .news-time{font-size:10px;color:#bbb;margin-left:auto}
 .news-title{font-size:13px;font-weight:500;color:#1d1d1f;line-height:1.5}
-.news-summary{font-size:12px;color:#555;line-height:1.6;margin-top:8px;padding-top:8px;border-top:0.5px solid #eee}
+.news-summary{font-size:12px;color:#555;line-height:1.7;margin-top:8px;padding-top:8px;border-top:0.5px solid #eee;white-space:pre-line}
 .news-link-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#0066cc;margin-top:9px;text-decoration:none;font-weight:500}
 .news-link-btn::after{content:"›";font-size:14px}
 .chevron{font-size:11px;color:#bbb;margin-left:4px;transition:transform .2s}
 .chevron.open{transform:rotate(90deg)}
+.summary-loading{font-size:11px;color:#999;margin-top:8px;padding-top:8px;border-top:0.5px solid #eee}
 .p-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .p-card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:10px 11px;cursor:pointer}
 .p-card.active{border:1.5px solid #0066cc;background:#f0f6ff}
@@ -115,7 +116,8 @@ const TABS=[
 let currentTab="topics";
 let selectedPlayer={};
 let openCard=null;
-const cache={};
+const listCache={};
+const summaryCache={};
 
 function renderTabs(){
   document.getElementById("tabRow").innerHTML=TABS.map(t=>
@@ -133,15 +135,15 @@ function switchTab(tab){
 function refreshCurrent(){
   openCard=null;
   if(currentTab==="topics"){
-    delete cache["__topics__"];
+    delete listCache["__topics__"];
   } else {
     const sel=selectedPlayer[currentTab];
-    if(sel!==undefined) delete cache[`${currentTab}-${sel}`];
+    if(sel!==undefined) delete listCache[`${currentTab}-${sel}`];
   }
   renderView();
 }
 
-async function fetchNews(query,club){
+async function fetchNewsList(query,club){
   let url=`${API}?q=${encodeURIComponent(query)}`;
   if(club) url+=`&club=${encodeURIComponent(club)}`;
   const res=await fetch(url);
@@ -150,20 +152,40 @@ async function fetchNews(query,club){
   return data.items||[];
 }
 
-function toggleCard(idx){
-  openCard = (openCard===idx) ? null : idx;
-  renderCurrentList();
+async function fetchSummary(titleEn, descEn){
+  const key = titleEn;
+  if(summaryCache[key]) return summaryCache[key];
+  const url=`${API}?summarize=1&title=${encodeURIComponent(titleEn)}&desc=${encodeURIComponent(descEn||'')}`;
+  const res=await fetch(url);
+  if(!res.ok) throw new Error("summary error");
+  const data=await res.json();
+  summaryCache[key]=data.summary_ja||'';
+  return summaryCache[key];
 }
 
 let lastRenderedItems=null;
 let lastRenderedKind=null;
+let lastRenderedPlayer=null;
 
 function renderCurrentList(){
   if(lastRenderedKind==='topics') renderTopicItems(lastRenderedItems);
   else if(lastRenderedKind==='player') renderPlayerItems(document.getElementById('playerNews'), lastRenderedItems, lastRenderedPlayer);
 }
 
-let lastRenderedPlayer=null;
+async function toggleCard(idx, titleEn, descEn){
+  const wasOpen = openCard===idx;
+  openCard = wasOpen ? null : idx;
+  renderCurrentList();
+  if(!wasOpen && !summaryCache[titleEn]){
+    try{
+      await fetchSummary(titleEn, descEn);
+      renderCurrentList();
+    }catch(e){
+      summaryCache[titleEn]='要約の取得に失敗しました。';
+      renderCurrentList();
+    }
+  }
+}
 
 async function renderView(){
   const v=document.getElementById("mainView");
@@ -172,13 +194,13 @@ async function renderView(){
   if(currentTab==="topics"){
     v.innerHTML=`<div class="badge-rt"><span class="pulse"></span>Google Newsリアルタイム</div>
     <div class="sec-lbl">主要トピック</div>
-    <div id="newsList"><div class="loading">🔍 世界のニュースを検索中…<br><span style="font-size:11px">英語記事を日本語に翻訳しています</span></div></div>`;
-    if(cache["__topics__"]){lastRenderedItems=cache["__topics__"];lastRenderedKind='topics';renderTopicItems(cache["__topics__"]);return;}
+    <div id="newsList"><div class="loading">🔍 世界のニュースを検索中…</div></div>`;
+    if(listCache["__topics__"]){lastRenderedItems=listCache["__topics__"];lastRenderedKind='topics';renderTopicItems(listCache["__topics__"]);return;}
     btn.classList.add("loading");
     try{
       const allNames=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth].map(p=>p.name).join(" OR ");
-      const items=await fetchNews("Japan national team "+allNames);
-      cache["__topics__"]=items;
+      const items=await fetchNewsList("Japan national team "+allNames);
+      listCache["__topics__"]=items;
       lastRenderedItems=items;lastRenderedKind='topics';
       renderTopicItems(items);
     }catch(e){
@@ -202,7 +224,18 @@ async function renderView(){
 
 function newsCardHTML(it, idx, matchedTag){
   const isOpen = openCard===idx;
-  return `<div class="news-card" onclick="toggleCard(${idx})">
+  const titleEnEsc = it.title_en.replace(/'/g,"\\'");
+  const descEnEsc = (it.desc_en||'').replace(/'/g,"\\'");
+  let bodyHtml = '';
+  if(isOpen){
+    if(summaryCache[it.title_en]){
+      bodyHtml = `<div class="news-summary">${summaryCache[it.title_en]}</div>
+      <a class="news-link-btn" href="${it.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">元ニュースを見る</a>`;
+    } else {
+      bodyHtml = `<div class="summary-loading">🤖 要約を作成中…</div>`;
+    }
+  }
+  return `<div class="news-card" onclick="toggleCard(${idx}, '${titleEnEsc}', '${descEnEsc}')">
       <div class="news-meta">
         ${matchedTag||""}
         <span class="news-source">${it.source}</span>
@@ -210,8 +243,7 @@ function newsCardHTML(it, idx, matchedTag){
         <span class="chevron${isOpen?' open':''}">▾</span>
       </div>
       <div class="news-title">${it.title_ja}</div>
-      ${isOpen?`<div class="news-summary">${it.summary_ja||it.title_en||'要約はありません'}</div>
-      <a class="news-link-btn" href="${it.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">元ニュースを見る</a>`:""}
+      ${bodyHtml}
     </div>`;
 }
 
@@ -240,12 +272,12 @@ async function loadPlayerNews(pos,idx){
   const key=`${pos}-${idx}`;
   const el=document.getElementById("playerNews");
   if(!el)return;
-  if(cache[key]){lastRenderedItems=cache[key];lastRenderedKind='player';lastRenderedPlayer=p;renderPlayerItems(el,cache[key],p);return;}
+  if(listCache[key]){lastRenderedItems=listCache[key];lastRenderedKind='player';lastRenderedPlayer=p;renderPlayerItems(el,listCache[key],p);return;}
   const btn=document.getElementById("refreshBtn");
   btn.classList.add("loading");
   try{
-    const items=await fetchNews(p.name, p.club);
-    cache[key]=items;
+    const items=await fetchNewsList(p.name, p.club);
+    listCache[key]=items;
     lastRenderedItems=items;lastRenderedKind='player';lastRenderedPlayer=p;
     renderPlayerItems(el,items,p);
   }catch(e){
