@@ -354,9 +354,10 @@ async function fetchNewsList(query,club,offset){
   return {items:data.items||[], hasMore:!!data.hasMore};
 }
 
-async function fetchSummary(titleEn, descEn){
+async function fetchSummary(titleEn, descEn, playerName){
   if(summaryCache[titleEn]) return summaryCache[titleEn];
-  const url=`${API}?summarize=1&title=${encodeURIComponent(titleEn)}&desc=${encodeURIComponent(descEn||'')}`;
+  let url=`${API}?summarize=1&title=${encodeURIComponent(titleEn)}&desc=${encodeURIComponent(descEn||'')}`;
+  if(playerName) url+=`&playerName=${encodeURIComponent(playerName)}`;
   const res=await fetch(url);
   if(!res.ok) throw new Error("summary error");
   const data=await res.json();
@@ -369,13 +370,13 @@ function renderCurrentList(){
   else if(lastRenderedKind==='player') renderPlayerItems(document.getElementById('playerNews'), lastRenderedItems, lastRenderedPlayer, lastRenderedHasMore);
 }
 
-async function toggleCard(idx, item){
+async function toggleCard(idx, item, playerName){
   const wasOpen = openCard===idx;
   openCard = wasOpen ? null : idx;
   renderCurrentList();
   if(!wasOpen && !summaryCache[item.title_en]){
     try{
-      await fetchSummary(item.title_en, item.desc_en);
+      await fetchSummary(item.title_en, item.desc_en, playerName);
       renderCurrentList();
     }catch(e){
       summaryCache[item.title_en]='要約の取得に失敗しました。';
@@ -451,9 +452,9 @@ async function renderView(){
   }
 }
 
-function buildNewsCard(it, idx, matchedTagText){
+function buildNewsCard(it, idx, matchedTagText, playerName){
   const isOpen = openCard===idx;
-  const card=el('div',{class:'news-card'+(isOpen?' open':''), onclick:()=>toggleCard(idx, it)});
+  const card=el('div',{class:'news-card'+(isOpen?' open':''), onclick:()=>toggleCard(idx, it, playerName)});
   const meta=el('div',{class:'news-meta'});
   if(matchedTagText){
     meta.appendChild(el('span',{class:'news-player-tag', text:matchedTagText}));
@@ -492,7 +493,7 @@ function renderTopicItems(items, hasMore){
   const list=el('div',{class:'news-list'});
   items.forEach((it,idx)=>{
     const matched=matchPlayer(it.title_en);
-    list.appendChild(buildNewsCard(it, idx, matched?matched.display:null));
+    list.appendChild(buildNewsCard(it, idx, matched?matched.display:null, matched?matched.display:null));
   });
   el2.appendChild(list);
   if(hasMore){
@@ -586,7 +587,7 @@ function renderPlayerItems(elD,items,p,hasMore){
   }
   elD.appendChild(el('div',{class:'sec-lbl-player', id:'playerNewsHeading', text:`${p.display}の最新ニュース`}));
   const list=el('div',{class:'news-list'});
-  items.forEach((it,idx)=>list.appendChild(buildNewsCard(it, idx, null)));
+  items.forEach((it,idx)=>list.appendChild(buildNewsCard(it, idx, null, p.display)));
   elD.appendChild(list);
   if(hasMore){
     const posKey=Object.keys(selectedPlayer).find(k=>selectedPlayer[k]!==undefined && PLAYERS[k][selectedPlayer[k]]===p);
