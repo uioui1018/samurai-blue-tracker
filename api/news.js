@@ -8,6 +8,60 @@ function stripHtml(text) {
   return text.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
 }
 
+// Known squad with common mistranslation variants for translated TITLES.
+// Google Translate sometimes invents wrong kanji for player names; this list
+// catches the variants we've observed and forces them back to the correct form.
+const NAME_FIXES = [
+  { correct: '鈴木彩艶', variants: ['鈴木彩世', '鈴木彩園', '鈴木彩炎'] },
+  { correct: '大迫敬介', variants: ['大迫敬助'] },
+  { correct: '早川友基', variants: ['早川友紀'] },
+  { correct: '菅原由勢', variants: ['菅原由世', '菅原祐勢'] },
+  { correct: '谷口彰悟', variants: ['谷口翔悟'] },
+  { correct: '板倉滉', variants: ['板倉浩', '板倉宏'] },
+  { correct: '長友佑都', variants: ['長友祐都', '長友有都'] },
+  { correct: '渡辺剛', variants: ['渡邊剛', '渡辺豪'] },
+  { correct: '伊藤洋輝', variants: ['伊東洋輝'] },
+  { correct: '冨安健洋', variants: ['富安健洋'] },
+  { correct: '瀬古歩夢', variants: ['瀬古歩武'] },
+  { correct: '鈴木淳之介', variants: ['鈴木純之介'] },
+  { correct: '遠藤航', variants: ['遠藤行'] },
+  { correct: '伊東純也', variants: ['伊藤純也'] },
+  { correct: '鎌田大地', variants: ['鎌田大智'] },
+  { correct: '堂安律', variants: ['堂安立'] },
+  { correct: '田中碧', variants: ['田中緑'] },
+  { correct: '町野修斗', variants: ['町野修人'] },
+  { correct: '中村敬斗', variants: ['中村敬人', '中村啓斗', '中村啓人', '中村敬登', '中村慶斗'] },
+  { correct: '佐野海舟', variants: ['佐野海周'] },
+  { correct: '久保建英', variants: ['久保健英'] },
+  { correct: '鈴木唯人', variants: ['鈴木惟人'] },
+  { correct: '塩貝健人', variants: ['塩貝建人'] },
+  { correct: '小川航基', variants: ['小川航己'] },
+  { correct: '前田大然', variants: ['前田大善'] },
+  { correct: '上田綺世', variants: ['上田彩世', '上田奇世', '上田希世'] },
+  { correct: '後藤啓介', variants: ['後藤敬介'] },
+  { correct: '松木玖生', variants: ['松木久生'] },
+  { correct: '高井幸大', variants: ['高井幸太'] },
+  { correct: '細谷真大', variants: ['細谷真太'] },
+  { correct: '藤田譜人', variants: ['藤田譜仁'] },
+];
+
+function fixPlayerNames(text) {
+  if (!text) return text;
+  let fixed = text;
+  for (const entry of NAME_FIXES) {
+    for (const variant of entry.variants) {
+      // also handle the spaced form ("上田 彩世") that sometimes appears
+      const spaced = variant.length >= 2 ? variant[0] + ' ' + variant.slice(1) : null;
+      fixed = fixed.split(variant).join(entry.correct);
+      if (spaced) {
+        const correctSpaced = entry.correct[0] + ' ' + entry.correct.slice(1);
+        fixed = fixed.split(spaced).join(correctSpaced);
+      }
+    }
+  }
+  return fixed;
+}
+
 async function translateText(text) {
   if (!text) return text;
   try {
@@ -15,7 +69,8 @@ async function translateText(text) {
     const res = await fetch(url);
     if (!res.ok) return text;
     const data = await res.json();
-    return data[0].map(chunk => chunk[0]).join('');
+    const translated = data[0].map(chunk => chunk[0]).join('');
+    return fixPlayerNames(translated);
   } catch {
     return text;
   }
@@ -28,7 +83,6 @@ async function summarizeOne(title, desc, playerName) {
   // Strategy: have the model write the summary using a safe placeholder token
   // instead of attempting to spell the player's kanji name itself. We then
   // deterministically substitute the placeholder with the verified correct name.
-  // This removes any chance of the model inventing/misremembering kanji.
   const PLACEHOLDER = '《選手》';
 
   let prompt = `以下はサッカー関連の英語ニュースです。日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。\n\n出力は要約文のみ、前置きや説明は不要です。`;
@@ -63,10 +117,10 @@ async function summarizeOne(title, desc, playerName) {
     if (!text) return null;
 
     if (playerName) {
-      // Deterministic substitution: replace the placeholder with the verified name.
       text = text.split(PLACEHOLDER).join(playerName);
     }
-    return text;
+    // Also run the deterministic fix pass in case the model slipped and wrote a name anyway
+    return fixPlayerNames(text);
   } catch {
     return null;
   }
