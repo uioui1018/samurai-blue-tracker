@@ -1,6 +1,11 @@
 // Vercel Serverless Function
-// GET /api/news?q=<player name>&club=<club name>(optional)
-// Uses Google News RSS + Google Translate (free) + Claude API (paid, cheap) for summarization
+// GET /api/news?q=<player name>&club=<club name>(optional)              -> list (fast, no AI)
+// GET /api/news?summarize=1&title=<...>&desc=<...>                       -> single AI summary (on demand)
+
+function stripHtml(text) {
+  if (!text) return '';
+  return text.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+}
 
 async function translateText(text) {
   if (!text) return text;
@@ -15,21 +20,10 @@ async function translateText(text) {
   }
 }
 
-function stripHtml(text) {
-  if (!text) return '';
-  return text.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
-}
-
-async function summarizeBatch(items) {
+async function summarizeOne(title, desc) {
   const API_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!API_KEY || items.length === 0) return null;
-
-  const list = items
-    .map((it, i) => `${i + 1}. ${it.title}${it.desc ? ' — ' + stripHtml(it.desc) : ''}`)
-    .join('\n');
-
-  const prompt = `以下はサッカー関連の英語ニュース見出しのリストです。各項目について、日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。出力は必ず以下のJSON配列の形式のみで、他のテキストは含めないでください。\n\n[{"index":1,"summary":"..."}, {"index":2,"summary":"..."}]\n\nニュース一覧:\n${list}`;
-
+  if (!API_KEY) return null;
+  const prompt = `以下はサッカー関連の英語ニュースです。日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。出力は要約文のみ、前置きや説明は不要です。\n\n見出し: ${title}\n詳細: ${desc || '(なし)'}`;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -42,7 +36,7 @@ async function summarizeBatch(items) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
+        max_tokens: 500,
         messages: [{ role: 'user', content: prompt }],
       }),
       signal: controller.signal,
@@ -50,13 +44,8 @@ async function summarizeBatch(items) {
     clearTimeout(timeout);
     if (!res.ok) return null;
     const data = await res.json();
-    const text = (data.content || []).map(c => c.text || '').join('');
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) return null;
-    const parsed = JSON.parse(match[0]);
-    const map = {};
-    parsed.forEach(p => { if (p.index && p.summary) map[p.index] = p.summary; });
-    return map;
+    const text = (data.content || []).map(c => c.text || '').join('').trim();
+    return text || null;
   } catch {
     return null;
   }
@@ -114,6 +103,17 @@ function dedupe(items) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
+  if (req.query.summarize === '1') {
+    const { title, desc } = req.query;
+    if (!title) return res.status(400).json({ error: 'missing title' });
+    const summary = await summarizeOne(title, desc || '');
+    if (summary) {
+      return res.status(200).json({ summary_ja: summary });
+    }
+    const fallback = await translateText(desc || title);
+    return res.status(200).json({ summary_ja: fallback, fallback: true });
+  }
+
   const { q, club } = req.query;
   if (!q) {
     return res.status(400).json({ error: 'missing query' });
@@ -135,25 +135,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ items: [] });
     }
 
-    const [summaryMap, translatedTitles] = await Promise.all([
-      summarizeBatch(topItems).catch(() => null),
-      Promise.all(topItems.map(it => translateText(it.title).catch(() => it.title))),
-    ]);
-
-    const needsFallback = [];
-    topItems.forEach((it, i) => {
-      if (!summaryMap || !summaryMap[i + 1]) needsFallback.push(i);
-    });
-    const fallbackTranslations = await Promise.all(
-      needsFallback.map(i => translateText(topItems[i].desc || topItems[i].title).catch(() => topItems[i].title))
+    const translatedTitles = await Promise.all(
+      topItems.map(it => translateText(it.title).catch(() => it.title))
     );
-    const fallbackMap = {};
-    needsFallback.forEach((idx, j) => { fallbackMap[idx] = fallbackTranslations[j]; });
 
     const result = topItems.map((it, i) => ({
       title_ja: translatedTitles[i] || it.title,
       title_en: it.title,
-      summary_ja: (summaryMap && summaryMap[i + 1]) || fallbackMap[i] || '',
+      desc_en: it.desc || '',
       link: it.link,
       source: it.source,
       time: formatTime(it.pubDate),
