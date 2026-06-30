@@ -18,13 +18,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;ba
 .tab.active{background:#1d1d1f;color:#fff;border-color:#1d1d1f;font-weight:500}
 .sec-lbl{font-size:10px;color:#999;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;padding:0 2px}
 .news-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
-.news-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:11px 13px;text-decoration:none;display:block;color:inherit}
-.news-card:active{background:#f0f0f5}
+.news-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:11px 13px;cursor:pointer}
+.news-card:active{background:#f7f7fa}
 .news-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
+.news-player-tag{font-size:10px;font-weight:600;color:#0066cc;background:#e8f0fe;padding:2px 7px;border-radius:10px}
 .news-source{font-size:10px;color:#999}
 .news-time{font-size:10px;color:#bbb;margin-left:auto}
 .news-title{font-size:13px;font-weight:500;color:#1d1d1f;line-height:1.5}
-.news-title-en{font-size:11px;color:#aaa;margin-top:3px;line-height:1.4}
+.news-summary{font-size:12px;color:#555;line-height:1.6;margin-top:8px;padding-top:8px;border-top:0.5px solid #eee}
+.news-link-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#0066cc;margin-top:9px;text-decoration:none;font-weight:500}
+.news-link-btn::after{content:"›";font-size:14px}
+.chevron{font-size:11px;color:#bbb;margin-left:4px;transition:transform .2s}
+.chevron.open{transform:rotate(90deg)}
 .p-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .p-card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:10px 11px;cursor:pointer}
 .p-card.active{border:1.5px solid #0066cc;background:#f0f6ff}
@@ -109,6 +114,7 @@ const TABS=[
 
 let currentTab="topics";
 let selectedPlayer={};
+let openCard=null;
 const cache={};
 
 function renderTabs(){
@@ -119,11 +125,13 @@ function renderTabs(){
 
 function switchTab(tab){
   currentTab=tab;
+  openCard=null;
   renderTabs();
   renderView();
 }
 
 function refreshCurrent(){
+  openCard=null;
   if(currentTab==="topics"){
     delete cache["__topics__"];
   } else {
@@ -133,12 +141,29 @@ function refreshCurrent(){
   renderView();
 }
 
-async function fetchNews(query){
-  const res=await fetch(`${API}?q=${encodeURIComponent(query)}`);
+async function fetchNews(query,club){
+  let url=`${API}?q=${encodeURIComponent(query)}`;
+  if(club) url+=`&club=${encodeURIComponent(club)}`;
+  const res=await fetch(url);
   if(!res.ok) throw new Error("api error");
   const data=await res.json();
   return data.items||[];
 }
+
+function toggleCard(idx){
+  openCard = (openCard===idx) ? null : idx;
+  renderCurrentList();
+}
+
+let lastRenderedItems=null;
+let lastRenderedKind=null;
+
+function renderCurrentList(){
+  if(lastRenderedKind==='topics') renderTopicItems(lastRenderedItems);
+  else if(lastRenderedKind==='player') renderPlayerItems(document.getElementById('playerNews'), lastRenderedItems, lastRenderedPlayer);
+}
+
+let lastRenderedPlayer=null;
 
 async function renderView(){
   const v=document.getElementById("mainView");
@@ -148,12 +173,13 @@ async function renderView(){
     v.innerHTML=`<div class="badge-rt"><span class="pulse"></span>Google Newsリアルタイム</div>
     <div class="sec-lbl">主要トピック</div>
     <div id="newsList"><div class="loading">🔍 世界のニュースを検索中…<br><span style="font-size:11px">英語記事を日本語に翻訳しています</span></div></div>`;
-    if(cache["__topics__"]){renderTopicItems(cache["__topics__"]);return;}
+    if(cache["__topics__"]){lastRenderedItems=cache["__topics__"];lastRenderedKind='topics';renderTopicItems(cache["__topics__"]);return;}
     btn.classList.add("loading");
     try{
       const allNames=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth].map(p=>p.name).join(" OR ");
       const items=await fetchNews("Japan national team "+allNames);
       cache["__topics__"]=items;
+      lastRenderedItems=items;lastRenderedKind='topics';
       renderTopicItems(items);
     }catch(e){
       document.getElementById("newsList").innerHTML=`<div class="err">取得に失敗しました。更新を押してください。</div>`;
@@ -174,26 +200,36 @@ async function renderView(){
   }
 }
 
-function renderTopicItems(items){
-  const el=document.getElementById("newsList");
-  if(!items||!items.length){el.innerHTML=`<div class="empty">ニュースが見つかりませんでした。</div>`;return;}
-  const allPlayers=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth];
-  el.innerHTML='<div class="news-list">'+items.map(it=>{
-    const matched=allPlayers.find(p=>it.title_en&&(it.title_en.includes(p.name)||it.title_en.toLowerCase().includes(p.display.replace(/\s/,"").toLowerCase())));
-    return `<a class="news-card" href="${it.link}" target="_blank" rel="noopener">
+function newsCardHTML(it, idx, matchedTag){
+  const isOpen = openCard===idx;
+  return `<div class="news-card" onclick="toggleCard(${idx})">
       <div class="news-meta">
-        ${matched?`<span style="font-size:10px;font-weight:600;color:#0066cc;background:#e8f0fe;padding:2px 7px;border-radius:10px">${matched.display}</span>`:""}
+        ${matchedTag||""}
         <span class="news-source">${it.source}</span>
         <span class="news-time">${it.time}</span>
+        <span class="chevron${isOpen?' open':''}">▾</span>
       </div>
       <div class="news-title">${it.title_ja}</div>
-      <div class="news-title-en">${it.title_en}</div>
-    </a>`;
+      ${isOpen?`<div class="news-summary">${it.summary_ja||it.title_en||'要約はありません'}</div>
+      <a class="news-link-btn" href="${it.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">元ニュースを見る</a>`:""}
+    </div>`;
+}
+
+function renderTopicItems(items){
+  const el=document.getElementById("newsList");
+  if(!el) return;
+  if(!items||!items.length){el.innerHTML=`<div class="empty">ニュースが見つかりませんでした。</div>`;return;}
+  const allPlayers=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth];
+  el.innerHTML='<div class="news-list">'+items.map((it,idx)=>{
+    const matched=allPlayers.find(p=>it.title_en&&(it.title_en.includes(p.name)||it.title_en.toLowerCase().includes(p.display.replace(/\s/,"").toLowerCase())));
+    const tag = matched?`<span class="news-player-tag">${matched.display}</span>`:"";
+    return newsCardHTML(it, idx, tag);
   }).join("")+'</div>';
 }
 
 async function selectPlayer(pos,idx){
   selectedPlayer[pos]=idx;
+  openCard=null;
   document.querySelectorAll(".p-card").forEach((c,i)=>c.classList.toggle("active",i===idx));
   document.getElementById("playerNews").innerHTML='<div class="loading">🔍 検索中…</div>';
   loadPlayerNews(pos,idx);
@@ -204,12 +240,13 @@ async function loadPlayerNews(pos,idx){
   const key=`${pos}-${idx}`;
   const el=document.getElementById("playerNews");
   if(!el)return;
-  if(cache[key]){renderPlayerItems(el,cache[key],p);return;}
+  if(cache[key]){lastRenderedItems=cache[key];lastRenderedKind='player';lastRenderedPlayer=p;renderPlayerItems(el,cache[key],p);return;}
   const btn=document.getElementById("refreshBtn");
   btn.classList.add("loading");
   try{
-    const items=await fetchNews(`${p.name} ${p.club}`);
+    const items=await fetchNews(p.name, p.club);
     cache[key]=items;
+    lastRenderedItems=items;lastRenderedKind='player';lastRenderedPlayer=p;
     renderPlayerItems(el,items,p);
   }catch(e){
     el.innerHTML=`<div class="err">取得に失敗。再度タップしてください。</div>`;
@@ -217,16 +254,10 @@ async function loadPlayerNews(pos,idx){
 }
 
 function renderPlayerItems(el,items,p){
+  if(!el) return;
   if(!items||!items.length){el.innerHTML=`<div class="empty">${p.display}のニュースが見つかりませんでした。</div>`;return;}
   el.innerHTML=`<div class="sec-lbl" style="margin-top:4px">${p.display}の最新ニュース</div><div class="news-list">`+
-    items.map(it=>`<a class="news-card" href="${it.link}" target="_blank" rel="noopener">
-      <div class="news-meta">
-        <span class="news-source">${it.source}</span>
-        <span class="news-time">${it.time}</span>
-      </div>
-      <div class="news-title">${it.title_ja}</div>
-      <div class="news-title-en">${it.title_en}</div>
-    </a>`).join("")+"</div>";
+    items.map((it,idx)=>newsCardHTML(it, idx, "")).join("")+"</div>";
 }
 
 renderTabs();
