@@ -7,164 +7,178 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
+html{background:#060a14}
 body{
   font-family:'Zen Kaku Gothic New',-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
-  background:#0a1628;
-  color:#f2efe6;
-  max-width:520px;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(37,99,235,0.16), transparent 45%),
+    radial-gradient(circle at 90% 20%, rgba(96,165,250,0.10), transparent 40%),
+    #060a14;
+  background-attachment:fixed;
+  color:#eef2fb;
+  max-width:540px;
   margin:0 auto;
-  padding:14px;
+  padding:16px;
   min-height:100vh;
 }
+
 .hdr{
   display:flex;align-items:center;justify-content:space-between;
-  background:linear-gradient(135deg,#0f2147 0%,#142a52 100%);
-  border-radius:18px;padding:16px 18px;margin-bottom:14px;
-  border:1px solid rgba(59,130,246,0.25);
-  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  background:rgba(255,255,255,0.035);
+  backdrop-filter:blur(18px);
+  border-radius:20px;padding:16px 18px;margin-bottom:16px;
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
 }
-.hdr-left{display:flex;align-items:center;gap:12px}
+.hdr-left{display:flex;align-items:center;gap:13px}
 .crow-icon{
-  width:42px;height:42px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, #2a3552, #0a1628);
+  width:46px;height:46px;border-radius:14px;
+  background:linear-gradient(155deg,#1d3a7a 0%,#0c1830 100%);
   display:flex;align-items:center;justify-content:center;
-  font-size:22px;border:1.5px solid #3b82f6;
   flex-shrink:0;
+  border:1px solid rgba(96,165,250,0.3);
+  box-shadow:0 4px 14px rgba(37,99,235,0.25), inset 0 1px 1px rgba(255,255,255,0.08);
 }
-.hdr-title{font-size:18px;font-weight:900;letter-spacing:.02em;color:#f2efe6}
-.hdr-sub{font-size:11.5px;color:#9aa3b8;margin-top:3px;letter-spacing:.03em}
+.crow-icon svg{width:26px;height:26px}
+.hdr-title{font-size:18.5px;font-weight:900;letter-spacing:.01em;color:#fff}
+.hdr-sub{font-size:11.5px;color:#7e8bab;margin-top:3px;letter-spacing:.04em;font-weight:500}
 .refresh-btn{
-  font-size:12.5px;font-weight:700;color:#3b82f6;
-  border:1px solid rgba(59,130,246,0.4);
-  background:rgba(59,130,246,0.08);
-  padding:8px 14px;border-radius:24px;cursor:pointer;
-  display:flex;align-items:center;gap:5px;
-  transition:background .2s;
+  font-size:12.5px;font-weight:700;color:#7fb1ff;
+  border:1px solid rgba(96,165,250,0.35);
+  background:rgba(59,130,246,0.1);
+  padding:9px 15px;border-radius:14px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  transition:background .2s, transform .1s;
 }
-.refresh-btn:active{background:rgba(59,130,246,0.2)}
-.refresh-btn.loading{opacity:.55;pointer-events:none}
+.refresh-btn:active{background:rgba(59,130,246,0.22);transform:scale(0.96)}
+.refresh-btn.loading{opacity:.5;pointer-events:none}
 .refresh-icon{display:inline-block}
 .refresh-btn.loading .refresh-icon{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.tab-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
+.tab-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
 .tab-row::-webkit-scrollbar{display:none}
 .tab{
-  font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:22px;
-  border:1px solid rgba(255,255,255,0.12);
-  background:rgba(255,255,255,0.04);
-  color:#b8c0d4;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  font-size:13.5px;font-weight:700;padding:10px 18px;border-radius:14px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.03);
+  color:#9aa6c4;cursor:pointer;white-space:nowrap;flex-shrink:0;
   transition:all .2s;
 }
 .tab.active{
-  background:linear-gradient(135deg,#3b82f6,#2563eb);
-  color:#14182a;border-color:#3b82f6;
-  box-shadow:0 2px 10px rgba(59,130,246,0.35);
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 16px rgba(37,99,235,0.45);
 }
 
 .sec-lbl{
-  font-size:11.5px;font-weight:700;color:#7c869c;
-  letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;padding:0 2px;
+  font-size:11.5px;font-weight:700;color:#5d6a8c;
+  letter-spacing:.14em;text-transform:uppercase;margin-bottom:11px;padding:0 3px;
 }
 
-.news-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.news-list{display:flex;flex-direction:column;gap:11px;margin-bottom:16px}
 .news-card{
-  background:linear-gradient(135deg,#11254a,#0c1c3d);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:16px;padding:16px 17px;cursor:pointer;
-  transition:border-color .2s, transform .1s;
+  background:rgba(255,255,255,0.035);
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:18px;padding:17px 18px;cursor:pointer;
+  transition:border-color .2s, transform .12s, background .2s;
 }
-.news-card:active{transform:scale(0.99)}
-.news-card.open{border-color:rgba(59,130,246,0.4)}
-.news-meta{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.news-card:active{transform:scale(0.985)}
+.news-card.open{border-color:rgba(96,165,250,0.4);background:rgba(59,130,246,0.06)}
+.news-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .news-player-tag{
-  font-size:11.5px;font-weight:700;color:#0a1628;
-  background:linear-gradient(135deg,#3b82f6,#60a5fa);
-  padding:4px 11px;border-radius:11px;
+  font-size:11.5px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#2563eb,#1e40af);
+  padding:4px 12px;border-radius:9px;
+  box-shadow:0 2px 8px rgba(37,99,235,0.3);
 }
-.news-source{font-size:11.5px;color:#7c869c;font-weight:500}
-.news-time{font-size:11.5px;color:#5a6378;margin-left:auto}
+.news-source{font-size:11.5px;color:#7e8bab;font-weight:600}
+.news-time{font-size:11.5px;color:#4a5578;margin-left:auto;font-weight:500}
 .chevron{
-  font-size:13px;color:#7c869c;margin-left:2px;
+  font-size:13px;color:#5d6a8c;margin-left:2px;
   transition:transform .25s;display:inline-block;
 }
-.chevron.open{transform:rotate(180deg);color:#3b82f6}
+.chevron.open{transform:rotate(180deg);color:#60a5fa}
 .news-title{
-  font-size:16px;font-weight:700;color:#f2efe6;line-height:1.55;
-  letter-spacing:.01em;
+  font-size:16.5px;font-weight:700;color:#fff;line-height:1.55;
+  letter-spacing:.005em;
 }
 .news-summary{
-  font-size:14.5px;color:#cfd5e3;line-height:1.85;
-  margin-top:13px;padding-top:13px;
+  font-size:14.5px;color:#c3cbe3;line-height:1.9;
+  margin-top:14px;padding-top:14px;
   border-top:1px solid rgba(255,255,255,0.08);
   white-space:pre-line;
 }
 .news-link-btn{
-  display:inline-flex;align-items:center;gap:5px;
-  font-size:13px;font-weight:700;color:#3b82f6;
-  margin-top:13px;text-decoration:none;
-  padding:7px 0;
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:#fff;
+  margin-top:14px;text-decoration:none;
+  padding:9px 16px;border-radius:11px;
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  box-shadow:0 3px 10px rgba(37,99,235,0.35);
 }
 .news-link-btn::after{content:"→";font-size:14px;transition:transform .2s}
 .news-link-btn:active::after{transform:translateX(3px)}
 .summary-loading{
-  font-size:13.5px;color:#9aa3b8;margin-top:13px;padding-top:13px;
+  font-size:13.5px;color:#8d97b8;margin-top:14px;padding-top:14px;
   border-top:1px solid rgba(255,255,255,0.08);
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:9px;
 }
 .summary-loading .dot-spin{
-  width:14px;height:14px;border-radius:50%;
-  border:2px solid rgba(59,130,246,0.25);
-  border-top-color:#3b82f6;
+  width:15px;height:15px;border-radius:50%;
+  border:2px solid rgba(96,165,250,0.22);
+  border-top-color:#60a5fa;
   animation:spin .8s linear infinite;flex-shrink:0;
 }
 
-.p-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.p-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-bottom:16px}
 .p-card{
-  background:linear-gradient(135deg,#11254a,#0c1c3d);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:16px;padding:14px 15px;cursor:pointer;
-  transition:border-color .2s, transform .1s;
+  background:rgba(255,255,255,0.035);
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:18px;padding:15px 16px;cursor:pointer;
+  transition:border-color .2s, transform .12s, background .2s;
 }
-.p-card:active{transform:scale(0.98)}
+.p-card:active{transform:scale(0.97)}
 .p-card.active{
-  border-color:#3b82f6;
-  background:linear-gradient(135deg,#1f2438,#171c2c);
-  box-shadow:0 0 0 1px rgba(59,130,246,0.3);
+  border-color:rgba(96,165,250,0.5);
+  background:rgba(59,130,246,0.1);
+  box-shadow:0 0 0 1px rgba(96,165,250,0.25), 0 6px 18px rgba(37,99,235,0.2);
 }
-.p-name{font-size:16px;font-weight:700;color:#f2efe6;line-height:1.3}
-.p-club{font-size:13px;color:#9aa3b8;margin-top:4px;font-weight:500}
-.p-row{display:flex;align-items:center;gap:6px;margin-top:7px}
-.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.p-league{font-size:11.5px;color:#7c869c;font-weight:500}
-.p-pos{font-size:11px;color:#5a6378;margin-top:4px;font-weight:600;letter-spacing:.04em}
+.p-name{font-size:16.5px;font-weight:700;color:#fff;line-height:1.3}
+.p-club{font-size:13px;color:#9aa6c4;margin-top:5px;font-weight:500}
+.p-row{display:flex;align-items:center;gap:6px;margin-top:8px}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.p-league{font-size:11.5px;color:#7e8bab;font-weight:600}
+.p-pos{font-size:11px;color:#4a5578;margin-top:5px;font-weight:700;letter-spacing:.05em}
 
 .loading{
-  text-align:center;padding:50px 0;color:#9aa3b8;font-size:14.5px;line-height:1.9;
+  text-align:center;padding:54px 0;color:#8d97b8;font-size:14.5px;line-height:1.9;font-weight:500;
 }
 .loading-spinner{
-  width:32px;height:32px;border-radius:50%;margin:0 auto 14px;
-  border:3px solid rgba(59,130,246,0.2);
-  border-top-color:#3b82f6;
+  width:34px;height:34px;border-radius:50%;margin:0 auto 16px;
+  border:3px solid rgba(96,165,250,0.18);
+  border-top-color:#60a5fa;
   animation:spin 1s linear infinite;
 }
-.err{text-align:center;padding:30px 0;color:#e8a0a0;font-size:13.5px;line-height:1.8}
+.err{text-align:center;padding:32px 0;color:#f29b9b;font-size:13.5px;line-height:1.8}
 .badge-rt{
-  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
-  color:#7fd99a;background:rgba(46,160,67,0.12);
-  border:1px solid rgba(46,160,67,0.3);padding:5px 12px;border-radius:12px;margin-bottom:12px;
+  display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;
+  color:#6ee7a3;background:rgba(34,197,94,0.1);
+  border:1px solid rgba(34,197,94,0.28);padding:6px 13px;border-radius:11px;margin-bottom:14px;
 }
-.pulse{width:7px;height:7px;border-radius:50%;background:#3fb950;animation:pulse 1.5s ease-in-out infinite}
+.pulse{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;animation:pulse 1.5s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
-.empty{text-align:center;padding:36px 0;color:#7c869c;font-size:13.5px;line-height:1.9}
+.empty{text-align:center;padding:40px 0;color:#5d6a8c;font-size:13.5px;line-height:1.9}
 .youth-note{
-  font-size:13px;color:#9aa3b8;line-height:1.8;padding:14px 16px;
-  background:rgba(59,130,246,0.06);border-radius:14px;
-  border:1px solid rgba(59,130,246,0.15);margin-top:6px;
+  font-size:13px;color:#8d97b8;line-height:1.85;padding:15px 17px;
+  background:rgba(96,165,250,0.05);border-radius:16px;
+  border:1px solid rgba(96,165,250,0.12);margin-top:8px;
 }
 .injured{
-  font-size:10.5px;color:#e8a0a0;border:1px solid rgba(232,160,160,0.35);
-  background:rgba(232,160,160,0.08);padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600;
+  font-size:10.5px;color:#f29b9b;border:1px solid rgba(242,155,155,0.3);
+  background:rgba(242,155,155,0.07);padding:2px 9px;border-radius:10px;margin-left:7px;font-weight:700;
 }
 </style>
 </head>
@@ -172,7 +186,13 @@ body{
 
 <div class="hdr">
   <div class="hdr-left">
-    <div class="crow-icon">🐦‍⬛</div>
+    <div class="crow-icon">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L4 7v6c0 4 3.5 7.5 8 9 4.5-1.5 8-5 8-9V7l-8-5z" fill="#60a5fa" opacity="0.15"/>
+        <path d="M12 3.5L5.5 7.7v5.3c0 3.4 2.9 6.3 6.5 7.6 3.6-1.3 6.5-4.2 6.5-7.6V7.7L12 3.5z" stroke="#60a5fa" stroke-width="1.3"/>
+        <circle cx="12" cy="11" r="2.6" fill="#60a5fa"/>
+      </svg>
+    </div>
     <div>
       <div class="hdr-title">サムライブルー追跡</div>
       <div class="hdr-sub">W杯2026 招集メンバー</div>
@@ -189,45 +209,45 @@ const API = 'https://samurai-blue-tracker.vercel.app/api/news';
 
 const PLAYERS = {
   gk:[
-    {name:"鈴木彩艶",romaji:"Zion Suzuki",display:"鈴木 彩艶",club:"パルマ",league:"セリエA",lc:"#3366cc",pos:"GK",num:1},
-    {name:"大迫敬介",romaji:"Keisuke Osako",display:"大迫 敬介",club:"サンフレッチェ広島",league:"J1リーグ",lc:"#4f7df0",pos:"GK",num:12},
-    {name:"早川友基",romaji:"Tomoki Hayakawa",display:"早川 友基",club:"鹿島アントラーズ",league:"J1リーグ",lc:"#4f7df0",pos:"GK",num:23},
+    {name:"鈴木彩艶",romaji:"Zion Suzuki",display:"鈴木 彩艶",club:"パルマ",league:"セリエA",lc:"#3b82f6",pos:"GK",num:1},
+    {name:"大迫敬介",romaji:"Keisuke Osako",display:"大迫 敬介",club:"サンフレッチェ広島",league:"J1リーグ",lc:"#60a5fa",pos:"GK",num:12},
+    {name:"早川友基",romaji:"Tomoki Hayakawa",display:"早川 友基",club:"鹿島アントラーズ",league:"J1リーグ",lc:"#60a5fa",pos:"GK",num:23},
   ],
   df:[
-    {name:"菅原由勢",romaji:"Yukinari Sugawara",display:"菅原 由勢",club:"ヴェルダー・ブレーメン",league:"ブンデスリーガ",lc:"#e05c5c",pos:"DF",num:2},
-    {name:"谷口彰悟",romaji:"Shogo Taniguchi",display:"谷口 彰悟",club:"シントトロイデン",league:"ベルギー1部",lc:"#9b6fe0",pos:"DF",num:3},
-    {name:"板倉滉",romaji:"Ko Itakura",display:"板倉 滉",club:"アヤックス",league:"オランダ1部",lc:"#f08c4e",pos:"DF",num:4},
-    {name:"長友佑都",romaji:"Yuto Nagatomo",display:"長友 佑都",club:"FC東京",league:"J1リーグ",lc:"#4f7df0",pos:"DF",num:5},
-    {name:"渡辺剛",romaji:"Tsuyoshi Watanabe",display:"渡辺 剛",club:"フェイエノールト",league:"オランダ1部",lc:"#f08c4e",pos:"DF",num:16},
-    {name:"伊藤洋輝",romaji:"Hiroki Ito",display:"伊藤 洋輝",club:"バイエルン・ミュンヘン",league:"ブンデスリーガ",lc:"#e05c5c",pos:"DF",num:21},
-    {name:"冨安健洋",romaji:"Takehiro Tomiyasu",display:"冨安 健洋",club:"アヤックス",league:"オランダ1部",lc:"#f08c4e",pos:"DF",num:22},
-    {name:"瀬古歩夢",romaji:"Ayumu Seko",display:"瀬古 歩夢",club:"ル・アーヴル",league:"リーグ・アン",lc:"#5b8fd9",pos:"DF",num:20},
-    {name:"鈴木淳之介",romaji:"Junnosuke Suzuki",display:"鈴木 淳之介",club:"FCコペンハーゲン",league:"デンマーク1部",lc:"#9b6fe0",pos:"DF",num:25},
+    {name:"菅原由勢",romaji:"Yukinari Sugawara",display:"菅原 由勢",club:"ヴェルダー・ブレーメン",league:"ブンデスリーガ",lc:"#f87171",pos:"DF",num:2},
+    {name:"谷口彰悟",romaji:"Shogo Taniguchi",display:"谷口 彰悟",club:"シントトロイデン",league:"ベルギー1部",lc:"#a78bfa",pos:"DF",num:3},
+    {name:"板倉滉",romaji:"Ko Itakura",display:"板倉 滉",club:"アヤックス",league:"オランダ1部",lc:"#fb923c",pos:"DF",num:4},
+    {name:"長友佑都",romaji:"Yuto Nagatomo",display:"長友 佑都",club:"FC東京",league:"J1リーグ",lc:"#60a5fa",pos:"DF",num:5},
+    {name:"渡辺剛",romaji:"Tsuyoshi Watanabe",display:"渡辺 剛",club:"フェイエノールト",league:"オランダ1部",lc:"#fb923c",pos:"DF",num:16},
+    {name:"伊藤洋輝",romaji:"Hiroki Ito",display:"伊藤 洋輝",club:"バイエルン・ミュンヘン",league:"ブンデスリーガ",lc:"#f87171",pos:"DF",num:21},
+    {name:"冨安健洋",romaji:"Takehiro Tomiyasu",display:"冨安 健洋",club:"アヤックス",league:"オランダ1部",lc:"#fb923c",pos:"DF",num:22},
+    {name:"瀬古歩夢",romaji:"Ayumu Seko",display:"瀬古 歩夢",club:"ル・アーヴル",league:"リーグ・アン",lc:"#93c5fd",pos:"DF",num:20},
+    {name:"鈴木淳之介",romaji:"Junnosuke Suzuki",display:"鈴木 淳之介",club:"FCコペンハーゲン",league:"デンマーク1部",lc:"#a78bfa",pos:"DF",num:25},
   ],
   mf:[
-    {name:"遠藤航",romaji:"Wataru Endo",display:"遠藤 航",club:"リバプール",league:"プレミアリーグ",lc:"#d9485a",pos:"MF",num:6,note:"6/12離脱"},
-    {name:"伊東純也",romaji:"Junya Ito",display:"伊東 純也",club:"KRCゲンク",league:"ベルギー1部",lc:"#9b6fe0",pos:"MF",num:14},
-    {name:"鎌田大地",romaji:"Daichi Kamada",display:"鎌田 大地",club:"クリスタル・パレス",league:"プレミアリーグ",lc:"#d9485a",pos:"MF",num:15},
-    {name:"堂安律",romaji:"Ritsu Doan",display:"堂安 律",club:"アイントラハト・フランクフルト",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:10},
-    {name:"田中碧",romaji:"Ao Tanaka",display:"田中 碧",club:"リーズ",league:"プレミアリーグ",lc:"#d9485a",pos:"MF",num:7},
-    {name:"町野修斗",romaji:"Shuto Machino",display:"町野 修斗",club:"ボルシアMG",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:6,note:"6/12追加招集"},
-    {name:"中村敬斗",romaji:"Keito Nakamura",display:"中村 敬斗",club:"スタッド・ランス",league:"リーグ・アン",lc:"#5b8fd9",pos:"MF",num:13},
-    {name:"佐野海舟",romaji:"Kaishu Sano",display:"佐野 海舟",club:"マインツ05",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:24},
-    {name:"久保建英",romaji:"Takefusa Kubo",display:"久保 建英",club:"レアル・ソシエダ",league:"ラ・リーガ",lc:"#e8b84f",pos:"MF",num:8},
-    {name:"鈴木唯人",romaji:"Yuito Suzuki",display:"鈴木 唯人",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:17},
-    {name:"塩貝健人",romaji:"Kento Shiogai",display:"塩貝 健人",club:"VfLヴォルフスブルク",league:"ブンデスリーガ",lc:"#e05c5c",pos:"MF",num:26},
+    {name:"遠藤航",romaji:"Wataru Endo",display:"遠藤 航",club:"リバプール",league:"プレミアリーグ",lc:"#fb7185",pos:"MF",num:6,note:"6/12離脱"},
+    {name:"伊東純也",romaji:"Junya Ito",display:"伊東 純也",club:"KRCゲンク",league:"ベルギー1部",lc:"#a78bfa",pos:"MF",num:14},
+    {name:"鎌田大地",romaji:"Daichi Kamada",display:"鎌田 大地",club:"クリスタル・パレス",league:"プレミアリーグ",lc:"#fb7185",pos:"MF",num:15},
+    {name:"堂安律",romaji:"Ritsu Doan",display:"堂安 律",club:"アイントラハト・フランクフルト",league:"ブンデスリーガ",lc:"#f87171",pos:"MF",num:10},
+    {name:"田中碧",romaji:"Ao Tanaka",display:"田中 碧",club:"リーズ",league:"プレミアリーグ",lc:"#fb7185",pos:"MF",num:7},
+    {name:"町野修斗",romaji:"Shuto Machino",display:"町野 修斗",club:"ボルシアMG",league:"ブンデスリーガ",lc:"#f87171",pos:"MF",num:6,note:"6/12追加招集"},
+    {name:"中村敬斗",romaji:"Keito Nakamura",display:"中村 敬斗",club:"スタッド・ランス",league:"リーグ・アン",lc:"#93c5fd",pos:"MF",num:13},
+    {name:"佐野海舟",romaji:"Kaishu Sano",display:"佐野 海舟",club:"マインツ05",league:"ブンデスリーガ",lc:"#f87171",pos:"MF",num:24},
+    {name:"久保建英",romaji:"Takefusa Kubo",display:"久保 建英",club:"レアル・ソシエダ",league:"ラ・リーガ",lc:"#fbbf24",pos:"MF",num:8},
+    {name:"鈴木唯人",romaji:"Yuito Suzuki",display:"鈴木 唯人",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#f87171",pos:"MF",num:17},
+    {name:"塩貝健人",romaji:"Kento Shiogai",display:"塩貝 健人",club:"VfLヴォルフスブルク",league:"ブンデスリーガ",lc:"#f87171",pos:"MF",num:26},
   ],
   fw:[
-    {name:"小川航基",romaji:"Koki Ogawa",display:"小川 航基",club:"NECナイメヘン",league:"オランダ1部",lc:"#f08c4e",pos:"FW",num:19},
-    {name:"前田大然",romaji:"Daizen Maeda",display:"前田 大然",club:"セルティック",league:"スコティッシュPL",lc:"#5fbf73",pos:"FW",num:11},
-    {name:"上田綺世",romaji:"Ayase Ueda",display:"上田 綺世",club:"フェイエノールト",league:"オランダ1部",lc:"#f08c4e",pos:"FW",num:18},
-    {name:"後藤啓介",romaji:"Keisuke Goto",display:"後藤 啓介",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#e05c5c",pos:"FW",num:9},
+    {name:"小川航基",romaji:"Koki Ogawa",display:"小川 航基",club:"NECナイメヘン",league:"オランダ1部",lc:"#fb923c",pos:"FW",num:19},
+    {name:"前田大然",romaji:"Daizen Maeda",display:"前田 大然",club:"セルティック",league:"スコティッシュPL",lc:"#4ade80",pos:"FW",num:11},
+    {name:"上田綺世",romaji:"Ayase Ueda",display:"上田 綺世",club:"フェイエノールト",league:"オランダ1部",lc:"#fb923c",pos:"FW",num:18},
+    {name:"後藤啓介",romaji:"Keisuke Goto",display:"後藤 啓介",club:"SCフライブルク",league:"ブンデスリーガ",lc:"#f87171",pos:"FW",num:9},
   ],
   youth:[
-    {name:"松木玖生",romaji:"Kuryu Matsuki",display:"松木 玖生",club:"FC東京",league:"J1リーグ",lc:"#4f7df0",pos:"MF / 22歳"},
-    {name:"高井幸大",romaji:"Kota Takai",display:"高井 幸大",club:"トッテナム",league:"プレミアリーグ",lc:"#d9485a",pos:"DF / 19歳"},
-    {name:"細谷真大",romaji:"Mahiro Hosoya",display:"細谷 真大",club:"柏レイソル",league:"J1リーグ",lc:"#e8b84f",pos:"FW / 22歳"},
-    {name:"藤田譜人",romaji:"Hayato Fujita",display:"藤田 譜人",club:"レンヌ",league:"リーグ・アン",lc:"#5b8fd9",pos:"MF / 20歳"},
+    {name:"松木玖生",romaji:"Kuryu Matsuki",display:"松木 玖生",club:"FC東京",league:"J1リーグ",lc:"#60a5fa",pos:"MF / 22歳"},
+    {name:"高井幸大",romaji:"Kota Takai",display:"高井 幸大",club:"トッテナム",league:"プレミアリーグ",lc:"#fb7185",pos:"DF / 19歳"},
+    {name:"細谷真大",romaji:"Mahiro Hosoya",display:"細谷 真大",club:"柏レイソル",league:"J1リーグ",lc:"#fbbf24",pos:"FW / 22歳"},
+    {name:"藤田譜人",romaji:"Hayato Fujita",display:"藤田 譜人",club:"レンヌ",league:"リーグ・アン",lc:"#93c5fd",pos:"MF / 20歳"},
   ]
 };
 
@@ -376,7 +396,7 @@ async function renderView(){
     const grid=el('div',{class:'p-grid'});
     players.forEach((p,i)=>{
       const card=el('div',{class:'p-card'+(sel===i?' active':''), onclick:()=>selectPlayer(currentTab,i)});
-      card.innerHTML=`<div class="p-name">${p.display}${p.note?`<span class="injured">${p.note}</span>`:''}</div><div class="p-club">${p.club}</div><div class="p-row"><span class="ldot" style="background:${p.lc}"></span><span class="p-league">${p.league}</span></div><div class="p-pos">${p.pos}</div>`;
+      card.innerHTML=`<div class="p-name">${p.display}${p.note?`<span class="injured">${p.note}</span>`:''}</div><div class="p-club">${p.club}</div><div class="p-row"><span class="ldot" style="background:${p.lc};color:${p.lc}"></span><span class="p-league">${p.league}</span></div><div class="p-pos">${p.pos}</div>`;
       grid.appendChild(card);
     });
     v.appendChild(grid);
