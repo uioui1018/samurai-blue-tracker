@@ -28,7 +28,7 @@ async function summarizeBatch(items) {
     .map((it, i) => `${i + 1}. ${it.title}${it.desc ? ' — ' + stripHtml(it.desc) : ''}`)
     .join('\n');
 
-  const prompt = `以下はサッカー関連の英語ニュース見出しのリストです。各項目について、日本語で1-2文の簡潔な要約を作成してください。出力は必ず以下のJSON配列の形式のみで、他のテキストは含めないでください。\n\n[{"index":1,"summary":"..."}, {"index":2,"summary":"..."}]\n\nニュース一覧:\n${list}`;
+  const prompt = `以下はサッカー関連の英語ニュース見出しのリストです。各項目について、日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。出力は必ず以下のJSON配列の形式のみで、他のテキストは含めないでください。\n\n[{"index":1,"summary":"..."}, {"index":2,"summary":"..."}]\n\nニュース一覧:\n${list}`;
 
   try {
     const controller = new AbortController();
@@ -42,7 +42,7 @@ async function summarizeBatch(items) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       }),
       signal: controller.signal,
