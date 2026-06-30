@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>サムライブルー追跡</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#f5f5f7;color:#1d1d1f;max-width:480px;margin:0 auto;padding:12px}
+.hdr{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:10px;border:0.5px solid #e0e0e0}
+.hdr-title{font-size:15px;font-weight:600}
+.hdr-sub{font-size:11px;color:#888;margin-top:2px}
+.refresh-btn{font-size:12px;color:#0066cc;border:1px solid #b3d4ff;background:#e8f0fe;padding:5px 11px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.refresh-btn.loading{opacity:.6;pointer-events:none}
+.tab-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.tab-row::-webkit-scrollbar{display:none}
+.tab{font-size:12px;padding:6px 13px;border-radius:20px;border:1px solid #d0d0d0;background:#fff;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#1d1d1f;color:#fff;border-color:#1d1d1f;font-weight:500}
+.sec-lbl{font-size:10px;color:#999;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;padding:0 2px}
+.news-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.news-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:11px 13px;text-decoration:none;display:block;color:inherit}
+.news-card:active{background:#f0f0f5}
+.news-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
+.news-source{font-size:10px;color:#999}
+.news-time{font-size:10px;color:#bbb;margin-left:auto}
+.news-title{font-size:13px;font-weight:500;color:#1d1d1f;line-height:1.5}
+.news-title-en{font-size:11px;color:#aaa;margin-top:3px;line-height:1.4}
+.p-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.p-card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:10px 11px;cursor:pointer}
+.p-card.active{border:1.5px solid #0066cc;background:#f0f6ff}
+.p-name{font-size:13px;font-weight:600;color:#1d1d1f}
+.p-club{font-size:11px;color:#888;margin-top:2px}
+.p-row{display:flex;align-items:center;gap:4px;margin-top:4px}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.p-league{font-size:10px;color:#666}
+.p-pos{font-size:10px;color:#bbb;margin-top:2px}
+.loading{text-align:center;padding:30px 0;color:#999;font-size:13px;line-height:1.8}
+.err{text-align:center;padding:20px 0;color:#c00;font-size:12px}
+.badge-rt{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#1a7f37;background:#d4f0dc;border:0.5px solid #a8ddb8;padding:3px 9px;border-radius:10px;margin-bottom:10px}
+.pulse{width:6px;height:6px;border-radius:50%;background:#1a7f37;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.empty{text-align:center;padding:24px 0;color:#aaa;font-size:12px;line-height:1.8}
+.youth-note{font-size:11px;color:#888;line-height:1.6;padding:10px 12px;background:#fafafa;border-radius:8px;border:0.5px solid #e8e8e8;margin-top:4px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="font-size:22px">🇯🇵</span>
+    <div>
+      <div class="hdr-title">サムライブルー追跡</div>
+      <div class="hdr-sub">代表選手のクラブ動向</div>
+    </div>
+  </div>
+  <div class="refresh-btn" id="refreshBtn" onclick="refreshCurrent()">↻ 更新</div>
+</div>
+
+<div class="tab-row" id="tabRow"></div>
+<div id="mainView"></div>
+
+<script>
+const API = 'https://samurai-blue-tracker.vercel.app/api/news';
+
+const PLAYERS = {
+  fw:[
+    {name:"上田綺世",display:"上田 綺世",club:"フェイエノールト",league:"エールディビジ",lc:"#e84c1e",pos:"CF"},
+    {name:"中村敬斗",display:"中村 敬斗",club:"スタッド・ランス",league:"リーグ・アン",lc:"#3366cc",pos:"LW"},
+    {name:"浅野拓磨",display:"浅野 拓磨",club:"ボーフム",league:"ブンデスリーガ",lc:"#cc3333",pos:"RW"},
+    {name:"前田大然",display:"前田 大然",club:"セルティック",league:"スコティッシュPL",lc:"#16a34a",pos:"FW"},
+  ],
+  mf:[
+    {name:"久保建英",display:"久保 建英",club:"レアル・ソシエダ",league:"ラ・リーガ",lc:"#f5a623",pos:"MF/RW"},
+    {name:"堂安律",display:"堂安 律",club:"フライブルク",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF"},
+    {name:"鎌田大地",display:"鎌田 大地",club:"クリスタル・パレス",league:"プレミアリーグ",lc:"#9b0000",pos:"MF"},
+    {name:"遠藤航",display:"遠藤 航",club:"リバプール",league:"プレミアリーグ",lc:"#9b0000",pos:"DM"},
+    {name:"守田英正",display:"守田 英正",club:"スポルティング",league:"プリメイラ",lc:"#16a34a",pos:"MF"},
+    {name:"田中碧",display:"田中 碧",club:"リーズ",league:"チャンピオンシップ",lc:"#f5a623",pos:"MF"},
+  ],
+  df:[
+    {name:"三笘薫",display:"三笘 薫",club:"ブライトン",league:"プレミアリーグ",lc:"#9b0000",pos:"LW/LB"},
+    {name:"冨安健洋",display:"冨安 健洋",club:"アーセナル",league:"プレミアリーグ",lc:"#9b0000",pos:"CB/RB"},
+    {name:"板倉滉",display:"板倉 滉",club:"ボルシアMG",league:"ブンデスリーガ",lc:"#cc3333",pos:"CB"},
+    {name:"谷口彰悟",display:"谷口 彰悟",club:"アル・ラーヤン",league:"カタールSL",lc:"#7c3aed",pos:"CB"},
+    {name:"長友佑都",display:"長友 佑都",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"LB"},
+    {name:"菅原由勢",display:"菅原 由勢",club:"サウサンプトン",league:"プレミアリーグ",lc:"#9b0000",pos:"RB"},
+  ],
+  gk:[
+    {name:"シュミットダニエル",display:"シュミット D.",club:"シント＝トロイデン",league:"プロリーグ",lc:"#7c3aed",pos:"GK"},
+    {name:"前川黛也",display:"前川 黛也",club:"ヴィッセル神戸",league:"J1リーグ",lc:"#1d4ed8",pos:"GK"},
+    {name:"鈴木彩艶",display:"鈴木 彩艶",club:"パルマ",league:"セリエA",lc:"#3366cc",pos:"GK"},
+  ],
+  youth:[
+    {name:"松木玖生",display:"松木 玖生",club:"FC東京",league:"J1リーグ",lc:"#1d4ed8",pos:"MF / 22歳"},
+    {name:"佐野航大",display:"佐野 航大",club:"マインツ",league:"ブンデスリーガ",lc:"#cc3333",pos:"MF / 23歳"},
+    {name:"細谷真大",display:"細谷 真大",club:"柏レイソル",league:"J1リーグ",lc:"#f5a623",pos:"FW / 22歳"},
+    {name:"高井幸大",display:"高井 幸大",club:"川崎F",league:"J1リーグ",lc:"#1d4ed8",pos:"CB / 19歳"},
+  ]
+};
+
+const TABS=[
+  {id:"topics",label:"トップ"},
+  {id:"fw",label:"FW"},
+  {id:"mf",label:"MF"},
+  {id:"df",label:"DF"},
+  {id:"gk",label:"GK"},
+  {id:"youth",label:"注目若手"},
+];
+
+let currentTab="topics";
+let selectedPlayer={};
+const cache={};
+
+function renderTabs(){
+  document.getElementById("tabRow").innerHTML=TABS.map(t=>
+    `<div class="tab${currentTab===t.id?" active":""}" onclick="switchTab('${t.id}')">${t.label}</div>`
+  ).join("");
+}
+
+function switchTab(tab){
+  currentTab=tab;
+  renderTabs();
+  renderView();
+}
+
+function refreshCurrent(){
+  if(currentTab==="topics"){
+    delete cache["__topics__"];
+  } else {
+    const sel=selectedPlayer[currentTab];
+    if(sel!==undefined) delete cache[`${currentTab}-${sel}`];
+  }
+  renderView();
+}
+
+async function fetchNews(query){
+  const res=await fetch(`${API}?q=${encodeURIComponent(query)}`);
+  if(!res.ok) throw new Error("api error");
+  const data=await res.json();
+  return data.items||[];
+}
+
+async function renderView(){
+  const v=document.getElementById("mainView");
+  const btn=document.getElementById("refreshBtn");
+
+  if(currentTab==="topics"){
+    v.innerHTML=`<div class="badge-rt"><span class="pulse"></span>Google Newsリアルタイム</div>
+    <div class="sec-lbl">主要トピック</div>
+    <div id="newsList"><div class="loading">🔍 世界のニュースを検索中…<br><span style="font-size:11px">英語記事を日本語に翻訳しています</span></div></div>`;
+    if(cache["__topics__"]){renderTopicItems(cache["__topics__"]);return;}
+    btn.classList.add("loading");
+    try{
+      const allNames=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth].map(p=>p.name).join(" OR ");
+      const items=await fetchNews("Japan national team "+allNames);
+      cache["__topics__"]=items;
+      renderTopicItems(items);
+    }catch(e){
+      document.getElementById("newsList").innerHTML=`<div class="err">取得に失敗しました。更新を押してください。</div>`;
+    }finally{btn.classList.remove("loading");}
+  } else {
+    const players=PLAYERS[currentTab]||[];
+    const sel=selectedPlayer[currentTab];
+    v.innerHTML=`<div class="p-grid">${players.map((p,i)=>`
+      <div class="p-card${sel===i?" active":""}" onclick="selectPlayer('${currentTab}',${i})">
+        <div class="p-name">${p.display}</div>
+        <div class="p-club">${p.club}</div>
+        <div class="p-row"><span class="ldot" style="background:${p.lc}"></span><span class="p-league">${p.league}</span></div>
+        <div class="p-pos">${p.pos}</div>
+      </div>`).join("")}</div>
+    <div id="playerNews">${sel!==undefined?'<div class="loading">検索中…</div>':'<div class="empty">選手をタップするとニュースを表示します</div>'}</div>
+    ${currentTab==="youth"?'<div class="youth-note">2030年W杯で23歳以下となる選手を中心に掲載しています。</div>':""}`;
+    if(sel!==undefined) loadPlayerNews(currentTab,sel);
+  }
+}
+
+function renderTopicItems(items){
+  const el=document.getElementById("newsList");
+  if(!items||!items.length){el.innerHTML=`<div class="empty">ニュースが見つかりませんでした。</div>`;return;}
+  const allPlayers=[...PLAYERS.fw,...PLAYERS.mf,...PLAYERS.df,...PLAYERS.gk,...PLAYERS.youth];
+  el.innerHTML='<div class="news-list">'+items.map(it=>{
+    const matched=allPlayers.find(p=>it.title_en&&(it.title_en.includes(p.name)||it.title_en.toLowerCase().includes(p.display.replace(/\s/,"").toLowerCase())));
+    return `<a class="news-card" href="${it.link}" target="_blank" rel="noopener">
+      <div class="news-meta">
+        ${matched?`<span style="font-size:10px;font-weight:600;color:#0066cc;background:#e8f0fe;padding:2px 7px;border-radius:10px">${matched.display}</span>`:""}
+        <span class="news-source">${it.source}</span>
+        <span class="news-time">${it.time}</span>
+      </div>
+      <div class="news-title">${it.title_ja}</div>
+      <div class="news-title-en">${it.title_en}</div>
+    </a>`;
+  }).join("")+'</div>';
+}
+
+async function selectPlayer(pos,idx){
+  selectedPlayer[pos]=idx;
+  document.querySelectorAll(".p-card").forEach((c,i)=>c.classList.toggle("active",i===idx));
+  document.getElementById("playerNews").innerHTML='<div class="loading">🔍 検索中…</div>';
+  loadPlayerNews(pos,idx);
+}
+
+async function loadPlayerNews(pos,idx){
+  const p=PLAYERS[pos][idx];
+  const key=`${pos}-${idx}`;
+  const el=document.getElementById("playerNews");
+  if(!el)return;
+  if(cache[key]){renderPlayerItems(el,cache[key],p);return;}
+  const btn=document.getElementById("refreshBtn");
+  btn.classList.add("loading");
+  try{
+    const items=await fetchNews(`${p.name} ${p.club}`);
+    cache[key]=items;
+    renderPlayerItems(el,items,p);
+  }catch(e){
+    el.innerHTML=`<div class="err">取得に失敗。再度タップしてください。</div>`;
+  }finally{btn.classList.remove("loading");}
+}
+
+function renderPlayerItems(el,items,p){
+  if(!items||!items.length){el.innerHTML=`<div class="empty">${p.display}のニュースが見つかりませんでした。</div>`;return;}
+  el.innerHTML=`<div class="sec-lbl" style="margin-top:4px">${p.display}の最新ニュース</div><div class="news-list">`+
+    items.map(it=>`<a class="news-card" href="${it.link}" target="_blank" rel="noopener">
+      <div class="news-meta">
+        <span class="news-source">${it.source}</span>
+        <span class="news-time">${it.time}</span>
+      </div>
+      <div class="news-title">${it.title_ja}</div>
+      <div class="news-title-en">${it.title_en}</div>
+    </a>`).join("")+"</div>";
+}
+
+renderTabs();
+renderView();
+</script>
+</body>
+</html>
