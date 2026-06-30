@@ -21,66 +21,23 @@ async function translateText(text) {
   }
 }
 
-// Known squad with surname-only and full-name variants for robust post-hoc correction.
-// Each entry maps WRONG/PARTIAL kanji variants -> the single correct kanji form.
-const NAME_CORRECTIONS = [
-  { correct: '鈴木彩艶', surname: '鈴木', variants: ['鈴木彩艶', '鈴木彩炎', '鈴木彩園'] },
-  { correct: '大迫敬介', surname: '大迫', variants: ['大迫敬介', '大迫敬助'] },
-  { correct: '早川友基', surname: '早川', variants: ['早川友基', '早川友紀'] },
-  { correct: '菅原由勢', surname: '菅原', variants: ['菅原由勢', '菅原由世', '菅原祐勢'] },
-  { correct: '谷口彰悟', surname: '谷口', variants: ['谷口彰悟', '谷口翔悟'] },
-  { correct: '板倉滉', surname: '板倉', variants: ['板倉滉', '板倉浩', '板倉宏'] },
-  { correct: '長友佑都', surname: '長友', variants: ['長友佑都', '長友祐都', '長友有都'] },
-  { correct: '渡辺剛', surname: '渡辺', variants: ['渡辺剛', '渡邊剛', '渡辺豪'] },
-  { correct: '伊藤洋輝', surname: '伊藤', variants: ['伊藤洋輝', '伊東洋輝'] },
-  { correct: '冨安健洋', surname: '冨安', variants: ['冨安健洋', '富安健洋'] },
-  { correct: '瀬古歩夢', surname: '瀬古', variants: ['瀬古歩夢', '瀬古歩武'] },
-  { correct: '鈴木淳之介', surname: '鈴木', variants: ['鈴木淳之介', '鈴木純之介'] },
-  { correct: '遠藤航', surname: '遠藤', variants: ['遠藤航', '遠藤行'] },
-  { correct: '伊東純也', surname: '伊東', variants: ['伊東純也', '伊藤純也'] },
-  { correct: '鎌田大地', surname: '鎌田', variants: ['鎌田大地', '鎌田大智'] },
-  { correct: '堂安律', surname: '堂安', variants: ['堂安律', '堂安立'] },
-  { correct: '田中碧', surname: '田中', variants: ['田中碧', '田中緑'] },
-  { correct: '町野修斗', surname: '町野', variants: ['町野修斗', '町野修人'] },
-  { correct: '中村敬斗', surname: '中村', variants: ['中村敬斗', '中村敬人', '中村啓斗', '中村啓人', '中村敬登', '中村慶斗'] },
-  { correct: '佐野海舟', surname: '佐野', variants: ['佐野海舟', '佐野海周'] },
-  { correct: '久保建英', surname: '久保', variants: ['久保建英', '久保健英'] },
-  { correct: '鈴木唯人', surname: '鈴木', variants: ['鈴木唯人', '鈴木惟人'] },
-  { correct: '塩貝健人', surname: '塩貝', variants: ['塩貝健人', '塩貝建人'] },
-  { correct: '小川航基', surname: '小川', variants: ['小川航基', '小川航己'] },
-  { correct: '前田大然', surname: '前田', variants: ['前田大然', '前田大善'] },
-  { correct: '上田綺世', surname: '上田', variants: ['上田綺世', '上田奇世', '上田希世'] },
-  { correct: '後藤啓介', surname: '後藤', variants: ['後藤啓介', '後藤敬介'] },
-  { correct: '松木玖生', surname: '松木', variants: ['松木玖生', '松木久生'] },
-  { correct: '高井幸大', surname: '高井', variants: ['高井幸大', '高井幸太'] },
-  { correct: '細谷真大', surname: '細谷', variants: ['細谷真大', '細谷真太'] },
-  { correct: '藤田譜人', surname: '藤田', variants: ['藤田譜人', '藤田譜仁'] },
-];
-
-// Post-process AI output: replace any wrong-variant spelling with the correct kanji.
-function fixPlayerNames(text) {
-  if (!text) return text;
-  let fixed = text;
-  for (const entry of NAME_CORRECTIONS) {
-    for (const variant of entry.variants) {
-      if (variant === entry.correct) continue;
-      fixed = fixed.split(variant).join(entry.correct);
-    }
-  }
-  return fixed;
-}
-
-const SQUAD_NAMES = NAME_CORRECTIONS.map(e => e.correct).join('、');
-
 async function summarizeOne(title, desc, playerName) {
   const API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!API_KEY) return null;
 
-  let prompt = `以下はサッカー関連の英語ニュースです。日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。\n\n重要：選手名の漢字表記は必ず正確に書いてください。日本代表の正しい選手名表記一覧: ${SQUAD_NAMES}。`;
+  // Strategy: have the model write the summary using a safe placeholder token
+  // instead of attempting to spell the player's kanji name itself. We then
+  // deterministically substitute the placeholder with the verified correct name.
+  // This removes any chance of the model inventing/misremembering kanji.
+  const PLACEHOLDER = '《選手》';
+
+  let prompt = `以下はサッカー関連の英語ニュースです。日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。\n\n出力は要約文のみ、前置きや説明は不要です。`;
+
   if (playerName) {
-    prompt += `\nこのニュースの主役は「${playerName}」です。要約内でこの選手名を書く際は、必ず「${playerName}」という正確な表記を一字一句そのまま使ってください。`;
+    prompt += `\n\n重要な指示：この記事の主役選手の名前を要約文中で書く必要がある箇所では、絶対に漢字や名前を自分で書かず、必ず代わりに固定の記号「${PLACEHOLDER}」をそのまま使ってください（例：「${PLACEHOLDER}は決勝点を決めた」）。これは後で自動的に正しい名前に変換されるための仕組みです。選手名のフルネーム・姓・名のいずれも直接書いてはいけません。`;
   }
-  prompt += `\n\n出力は要約文のみ、前置きや説明は不要です。\n\n見出し: ${title}\n詳細: ${desc || '(なし)'}`;
+
+  prompt += `\n\n見出し: ${title}\n詳細: ${desc || '(なし)'}`;
 
   try {
     const controller = new AbortController();
@@ -102,10 +59,14 @@ async function summarizeOne(title, desc, playerName) {
     clearTimeout(timeout);
     if (!res.ok) return null;
     const data = await res.json();
-    const text = (data.content || []).map(c => c.text || '').join('').trim();
+    let text = (data.content || []).map(c => c.text || '').join('').trim();
     if (!text) return null;
-    // Always run the deterministic name-fix pass regardless of what the model produced
-    return fixPlayerNames(text);
+
+    if (playerName) {
+      // Deterministic substitution: replace the placeholder with the verified name.
+      text = text.split(PLACEHOLDER).join(playerName);
+    }
+    return text;
   } catch {
     return null;
   }
@@ -174,8 +135,7 @@ export default async function handler(req, res) {
     if (summary) {
       return res.status(200).json({ summary_ja: summary });
     }
-    // Even the fallback translation should get the name-fix pass
-    const fallback = fixPlayerNames(await translateText(desc || title));
+    const fallback = await translateText(desc || title);
     return res.status(200).json({ summary_ja: fallback, fallback: true });
   }
 
@@ -196,7 +156,7 @@ export default async function handler(req, res) {
       if (pageItems.length === 0) return res.status(200).json({ items: [], hasMore: false });
 
       const translatedTitles = await Promise.all(
-        pageItems.map(it => translateText(it.title).then(fixPlayerNames).catch(() => it.title))
+        pageItems.map(it => translateText(it.title).catch(() => it.title))
       );
 
       const result = pageItems.map((it, i) => ({
@@ -237,7 +197,7 @@ export default async function handler(req, res) {
     }
 
     const translatedTitles = await Promise.all(
-      pageItems.map(it => translateText(it.title).then(fixPlayerNames).catch(() => it.title))
+      pageItems.map(it => translateText(it.title).catch(() => it.title))
     );
 
     const result = pageItems.map((it, i) => ({
