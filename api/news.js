@@ -26,6 +26,11 @@ function formatTime(pubDate) {
   return new Date(parsed).toLocaleDateString('ja-JP');
 }
 
+function isJunk(title) {
+  const junkPatterns = [/^lowdown:/i, /^the lowdown/i, /season review/i, /fixtures and results/i];
+  return junkPatterns.some(p => p.test(title));
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
@@ -35,30 +40,34 @@ export default async function handler(req, res) {
   }
 
   try {
-    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q + ' football')}&hl=en-US&gl=US&ceid=US:en`;
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
     const rssRes = await fetch(rssUrl);
     const xml = await rssRes.text();
 
     const items = [];
-    const itemBlocks = xml.split('<item>').slice(1).slice(0, 6);
+    const itemBlocks = xml.split('<item>').slice(1).slice(0, 12);
     for (const block of itemBlocks) {
       const title = (block.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
       const link = (block.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || '';
       const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || '';
       const source = (block.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1] || '';
       const cleanTitle = title.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
-      if (cleanTitle) {
-        items.push({ title: cleanTitle, link: link.trim(), pubDate: pubDate.trim(), source: source.trim() });
+      const parsedDate = pubDate ? Date.parse(pubDate.trim()) : NaN;
+      if (cleanTitle && !isNaN(parsedDate) && !isJunk(cleanTitle)) {
+        items.push({ title: cleanTitle, link: link.trim(), pubDate: pubDate.trim(), parsedDate, source: source.trim() });
       }
     }
 
-    if (items.length === 0) {
+    items.sort((a, b) => b.parsedDate - a.parsedDate);
+    const topItems = items.slice(0, 6);
+
+    if (topItems.length === 0) {
       return res.status(200).json({ items: [] });
     }
 
-    const translated = await Promise.all(items.map(it => translateText(it.title)));
+    const translated = await Promise.all(topItems.map(it => translateText(it.title)));
 
-    const result = items.map((it, i) => ({
+    const result = topItems.map((it, i) => ({
       title_ja: translated[i] || it.title,
       title_en: it.title,
       link: it.link,
