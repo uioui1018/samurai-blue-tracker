@@ -1,5 +1,6 @@
 // Vercel Serverless Function
 // GET /api/news?q=<player name>&club=<club name>(optional)              -> list (fast, no AI)
+// GET /api/news?topics=1                                                 -> homepage feed: national team + match results focused
 // GET /api/news?summarize=1&title=<...>&desc=<...>                       -> single AI summary (on demand)
 
 function stripHtml(text) {
@@ -114,6 +115,40 @@ export default async function handler(req, res) {
     return res.status(200).json({ summary_ja: fallback, fallback: true });
   }
 
+  // Homepage topics mode: focused on match results / national team headlines, sorted strictly by recency
+  if (req.query.topics === '1') {
+    try {
+      const queries = [
+        'Japan national team football',
+        'SAMURAI BLUE football',
+        'Japan World Cup 2026 football',
+      ];
+      const resultsArrays = await Promise.all(queries.map(fetchAndParse));
+      let combined = dedupe(resultsArrays.flat());
+      combined.sort((a, b) => b.parsedDate - a.parsedDate);
+      const topItems = combined.slice(0, 8);
+
+      if (topItems.length === 0) return res.status(200).json({ items: [] });
+
+      const translatedTitles = await Promise.all(
+        topItems.map(it => translateText(it.title).catch(() => it.title))
+      );
+
+      const result = topItems.map((it, i) => ({
+        title_ja: translatedTitles[i] || it.title,
+        title_en: it.title,
+        desc_en: it.desc || '',
+        link: it.link,
+        source: it.source,
+        time: formatTime(it.pubDate),
+      }));
+      return res.status(200).json({ items: result });
+    } catch (err) {
+      return res.status(500).json({ error: 'fetch_failed', message: String(err && err.message || err) });
+    }
+  }
+
+  // Per-player mode
   const { q, club } = req.query;
   if (!q) {
     return res.status(400).json({ error: 'missing query' });
