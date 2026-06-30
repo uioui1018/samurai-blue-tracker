@@ -1,7 +1,7 @@
 // Vercel Serverless Function
 // GET /api/news?q=<player name>&club=<club name>(optional)&offset=<n>    -> list (fast, no AI)
 // GET /api/news?topics=1&offset=<n>                                      -> homepage feed: national team + match results focused
-// GET /api/news?summarize=1&title=<...>&desc=<...>                       -> single AI summary (on demand)
+// GET /api/news?summarize=1&title=<...>&desc=<...>&playerName=<...>      -> single AI summary (on demand)
 
 function stripHtml(text) {
   if (!text) return '';
@@ -21,10 +21,26 @@ async function translateText(text) {
   }
 }
 
-async function summarizeOne(title, desc) {
+// Known squad list for name-accuracy enforcement in the AI prompt
+const SQUAD_NAMES = [
+  '鈴木彩艶', '大迫敬介', '早川友基',
+  '菅原由勢', '谷口彰悟', '板倉滉', '長友佑都', '渡辺剛', '伊藤洋輝', '冨安健洋', '瀬古歩夢', '鈴木淳之介',
+  '遠藤航', '伊東純也', '鎌田大地', '堂安律', '田中碧', '町野修斗', '中村敬斗', '佐野海舟', '久保建英', '鈴木唯人', '塩貝健人',
+  '小川航基', '前田大然', '上田綺世', '後藤啓介',
+  '松木玖生', '高井幸大', '細谷真大', '藤田譜人',
+];
+
+async function summarizeOne(title, desc, playerName) {
   const API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!API_KEY) return null;
-  const prompt = `以下はサッカー関連の英語ニュースです。日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。出力は要約文のみ、前置きや説明は不要です。\n\n見出し: ${title}\n詳細: ${desc || '(なし)'}`;
+
+  const namesList = SQUAD_NAMES.join('、');
+  let prompt = `以下はサッカー関連の英語ニュースです。日本語で4〜6文程度のしっかりした要約を作成してください。見出しから読み取れる文脈（背景、選手の状況、試合結果やパフォーマンス、今後の展望など）を可能な限り具体的に補って書いてください。情報が少ない場合は、わかる範囲で丁寧に膨らませてください。\n\n重要：選手名の漢字表記は必ず正確に書いてください。日本代表の正しい選手名表記一覧: ${namesList}。`;
+  if (playerName) {
+    prompt += `\nこのニュースの主役は「${playerName}」です。要約内でこの選手名を書く際は、必ず「${playerName}」という正確な表記を使ってください。`;
+  }
+  prompt += `\n\n出力は要約文のみ、前置きや説明は不要です。\n\n見出し: ${title}\n詳細: ${desc || '(なし)'}`;
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -109,9 +125,9 @@ export default async function handler(req, res) {
   const offset = parseInt(req.query.offset, 10) || 0;
 
   if (req.query.summarize === '1') {
-    const { title, desc } = req.query;
+    const { title, desc, playerName } = req.query;
     if (!title) return res.status(400).json({ error: 'missing title' });
-    const summary = await summarizeOne(title, desc || '');
+    const summary = await summarizeOne(title, desc || '', playerName || '');
     if (summary) {
       return res.status(200).json({ summary_ja: summary });
     }
