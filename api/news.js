@@ -1,6 +1,6 @@
 // Vercel Serverless Function
 // GET /api/news?q=<player name>&club=<club name>(optional)
-// Uses Google News RSS + Google Translate (free) + Hugging Face (free, with safe fallback) for summarization
+// Uses Google News RSS + Google Translate (free) + Claude API (paid, cheap) for summarization
 
 async function translateText(text) {
   if (!text) return text;
@@ -15,31 +15,48 @@ async function translateText(text) {
   }
 }
 
-async function summarizeText(text) {
-  const HF_TOKEN = process.env.HF_API_TOKEN;
-  if (!HF_TOKEN || !text || text.length < 40) return null;
+function stripHtml(text) {
+  if (!text) return '';
+  return text.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+}
+
+async function summarizeBatch(items) {
+  const API_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!API_KEY || items.length === 0) return null;
+
+  const list = items
+    .map((it, i) => `${i + 1}. ${it.title}${it.desc ? ' — ' + stripHtml(it.desc) : ''}`)
+    .join('\n');
+
+  const prompt = `以下はサッカー関連の英語ニュース見出しのリストです。各項目について、日本語で1-2文の簡潔な要約を作成してください。出力は必ず以下のJSON配列の形式のみで、他のテキストは含めないでください。\n\n[{"index":1,"summary":"..."}, {"index":2,"summary":"..."}]\n\nニュース一覧:\n${list}`;
+
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(
-      'https://api-inference.huggingface.co/models/facebook/bart-large-cnn',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${HF_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inputs: text, parameters: { max_length: 60, min_length: 15 } }),
-        signal: controller.signal,
-      }
-    );
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: controller.signal,
+    });
     clearTimeout(timeout);
     if (!res.ok) return null;
-    const data = await res.json().catch(() => null);
-    if (data && Array.isArray(data) && data[0] && typeof data[0].summary_text === 'string') {
-      return data[0].summary_text;
-    }
-    return null;
+    const data = await res.json();
+    const text = (data.content || []).map(c => c.text || '').join('');
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]);
+    const map = {};
+    parsed.forEach(p => { if (p.index && p.summary) map[p.index] = p.summary; });
+    return map;
   } catch {
     return null;
   }
@@ -72,7 +89,7 @@ async function fetchAndParse(query) {
       const source = (block.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1] || '';
       const descRaw = (block.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || '';
       const cleanTitle = title.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
-      const cleanDesc = descRaw.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim();
+      const cleanDesc = stripHtml(descRaw.replace(/<!\[CDATA\[|\]\]>/g, ''));
       const parsedDate = pubDate ? Date.parse(pubDate.trim()) : NaN;
       if (cleanTitle && !isNaN(parsedDate)) {
         items.push({ title: cleanTitle, desc: cleanDesc, link: link.trim(), pubDate: pubDate.trim(), parsedDate, source: source.trim() });
@@ -118,26 +135,25 @@ export default async function handler(req, res) {
       return res.status(200).json({ items: [] });
     }
 
-    const summaries = await Promise.all(
-      topItems.map(it =>
-        summarizeText(it.desc && it.desc.length > 40 ? it.desc : it.title).catch(() => null)
-      )
-    );
+    const [summaryMap, translatedTitles] = await Promise.all([
+      summarizeBatch(topItems).catch(() => null),
+      Promise.all(topItems.map(it => translateText(it.title).catch(() => it.title))),
+    ]);
 
-    const translatedTitles = await Promise.all(
-      topItems.map(it => translateText(it.title).catch(() => it.title))
+    const needsFallback = [];
+    topItems.forEach((it, i) => {
+      if (!summaryMap || !summaryMap[i + 1]) needsFallback.push(i);
+    });
+    const fallbackTranslations = await Promise.all(
+      needsFallback.map(i => translateText(topItems[i].desc || topItems[i].title).catch(() => topItems[i].title))
     );
-    const translatedSummaries = await Promise.all(
-      summaries.map((s, i) => {
-        const fallback = topItems[i].desc || topItems[i].title;
-        return translateText(s || fallback).catch(() => fallback);
-      })
-    );
+    const fallbackMap = {};
+    needsFallback.forEach((idx, j) => { fallbackMap[idx] = fallbackTranslations[j]; });
 
     const result = topItems.map((it, i) => ({
       title_ja: translatedTitles[i] || it.title,
       title_en: it.title,
-      summary_ja: translatedSummaries[i] || '',
+      summary_ja: (summaryMap && summaryMap[i + 1]) || fallbackMap[i] || '',
       link: it.link,
       source: it.source,
       time: formatTime(it.pubDate),
