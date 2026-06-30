@@ -115,6 +115,11 @@ body{
   transition:transform .25s;display:inline-block;
 }
 .chevron.open{transform:rotate(180deg);color:#60a5fa}
+.news-tap-hint{
+  font-size:12px;color:#5b8fd9;font-weight:600;
+  margin-top:8px;display:flex;align-items:center;gap:5px;
+}
+.news-tap-hint::before{content:"✦";font-size:11px}
 .news-title{
   font-size:16.5px;font-weight:700;color:#fff;line-height:1.55;
   letter-spacing:.005em;
@@ -455,6 +460,9 @@ function buildNewsCard(it, idx, matchedTagText){
   meta.appendChild(el('span',{class:'chevron'+(isOpen?' open':''), text:'▾'}));
   card.appendChild(meta);
   card.appendChild(el('div',{class:'news-title', text:it.title_ja}));
+  if(!isOpen){
+    card.appendChild(el('div',{class:'news-tap-hint', text:'タップしてAI要約を読む'}));
+  }
   if(isOpen){
     if(summaryCache[it.title_en]){
       card.appendChild(el('div',{class:'news-summary', text:summaryCache[it.title_en]}));
