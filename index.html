@@ -80,6 +80,16 @@ body{
   font-size:11.5px;font-weight:700;color:#5d6a8c;
   letter-spacing:.14em;text-transform:uppercase;margin-bottom:11px;padding:0 3px;
 }
+.sec-lbl-player{
+  font-size:15px;font-weight:900;color:#fff;
+  letter-spacing:.01em;margin-bottom:13px;padding:10px 3px 0;
+  display:flex;align-items:center;gap:8px;
+  scroll-margin-top:16px;
+}
+.sec-lbl-player::before{
+  content:"";width:4px;height:16px;border-radius:3px;
+  background:linear-gradient(180deg,#3b82f6,#60a5fa);display:inline-block;
+}
 
 .news-list{display:flex;flex-direction:column;gap:11px;margin-bottom:16px}
 .news-card{
@@ -495,11 +505,22 @@ async function loadMoreTopics(){
   }
 }
 
+function scrollToPlayerNews(){
+  setTimeout(()=>{
+    const heading=document.getElementById('playerNewsHeading');
+    if(heading) heading.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 50);
+}
+
 async function selectPlayer(pos,idx){
   selectedPlayer[pos]=idx;
   openCard=null;
   document.querySelectorAll(".p-card").forEach((c,i)=>c.classList.toggle("active",i===idx));
-  document.getElementById("playerNews").innerHTML='<div class="loading"><div class="loading-spinner"></div>検索中…</div>';
+  const newsEl=document.getElementById("playerNews");
+  newsEl.innerHTML='<div class="loading"><div class="loading-spinner"></div>検索中…</div>';
+  setTimeout(()=>{
+    newsEl.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
   loadPlayerNews(pos,idx);
 }
 
@@ -512,6 +533,7 @@ async function loadPlayerNews(pos,idx){
     const c=listCache[key];
     lastRenderedItems=c.items;lastRenderedKind='player';lastRenderedPlayer=p;lastRenderedHasMore=c.hasMore;
     renderPlayerItems(elD,c.items,p,c.hasMore);
+    scrollToPlayerNews();
     return;
   }
   const btn=document.getElementById("refreshBtn");
@@ -521,6 +543,7 @@ async function loadPlayerNews(pos,idx){
     listCache[key]={items, hasMore};
     lastRenderedItems=items;lastRenderedKind='player';lastRenderedPlayer=p;lastRenderedHasMore=hasMore;
     renderPlayerItems(elD,items,p,hasMore);
+    scrollToPlayerNews();
   }catch(e){
     elD.innerHTML='<div class="err">取得に失敗。再度タップしてください。</div>';
   }finally{btn.classList.remove("loading");}
@@ -550,7 +573,7 @@ function renderPlayerItems(elD,items,p,hasMore){
     elD.innerHTML=`<div class="empty">${p.display}のニュースが見つかりませんでした。</div>`;
     return;
   }
-  elD.appendChild(el('div',{class:'sec-lbl', style:'margin-top:6px', text:`${p.display}の最新ニュース`}));
+  elD.appendChild(el('div',{class:'sec-lbl-player', id:'playerNewsHeading', text:`${p.display}の最新ニュース`}));
   const list=el('div',{class:'news-list'});
   items.forEach((it,idx)=>list.appendChild(buildNewsCard(it, idx, null)));
   elD.appendChild(list);
