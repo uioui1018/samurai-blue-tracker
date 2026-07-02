@@ -165,9 +165,32 @@ async function fetchAndParse(query) {
   }
 }
 
+// Spam/junk filter: remove piracy livestream ads and low-quality sources
+const SPAM_SOURCES = ['keith prowse', 'keithprowse'];
+const SPAM_TITLE_PATTERNS = [
+  /\[?tonton langsung\]?/i,
+  /\[?uzivo\]?/i,
+  /\[?livestream\]?/i,
+  /\[?live stream\]?/i,
+  /\[?4k\s*uzivo\]?/i,
+  /besplatno sad/i,
+  /livefree/i,
+  /!!?\$\+/,
+  /\+\+\[/,
+  /!\$\+\[/,
+];
+
+function isSpam(item) {
+  const srcLower = (item.source || '').toLowerCase();
+  if (SPAM_SOURCES.some(s => srcLower.includes(s))) return true;
+  if (SPAM_TITLE_PATTERNS.some(p => p.test(item.title))) return true;
+  return false;
+}
+
 function dedupe(items) {
   const seen = new Set();
   return items.filter(it => {
+    if (isSpam(it)) return false;
     const key = it.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
     if (seen.has(key)) return false;
     seen.add(key);
